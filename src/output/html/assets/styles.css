@@ -6,7 +6,7 @@
   --bg: #fafaf9;
   --ink: rgb(12 12 18 / 0.9);
   --ink-2: rgb(12 12 18 / 0.7);
-  --ink-3: rgb(12 12 18 / 0.56);
+  --ink-3: rgb(12 12 18 / 0.6);
   --ink-4: rgb(12 12 18 / 0.3);
   --line: rgb(12 12 18 / 0.1);
   --line-2: rgb(12 12 18 / 0.06);
@@ -81,7 +81,7 @@ button, input, select { font: inherit; color: inherit; }
 }
 
 .link {
-  background: none; border: 0; padding: 0; cursor: pointer; font-size: 12px; color: var(--ink-3);
+  background: none; border: 0; padding: 0; cursor: pointer; font-size: 13px; color: var(--ink-3);
   white-space: nowrap; transition: color 0.2s;
 }
 .link:hover { color: var(--ink); }
@@ -99,7 +99,7 @@ button, input, select { font: inherit; color: inherit; }
 .judge { display: flex; flex-wrap: wrap; margin-inline: -10px; }
 .judge button {
   position: relative; background: none; border: 0; cursor: pointer; white-space: nowrap;
-  padding: 8px 10px; font-size: 12.5px; letter-spacing: 0.08em; color: var(--ink-3); transition: color 0.2s;
+  padding: 8px 10px; font-size: 13px; color: var(--ink-3); transition: color 0.2s;
 }
 .judge button::after {
   content: ""; position: absolute; left: 10px; right: 10px; bottom: 2px; height: 1px;
@@ -108,7 +108,7 @@ button, input, select { font: inherit; color: inherit; }
 .judge button:hover { color: var(--ink); }
 .judge button[aria-pressed="true"] { color: var(--ink); }
 .judge button[aria-pressed="true"]::after { transform: scaleX(1); }
-.judge .n { margin-left: 6px; font-variant-numeric: tabular-nums; letter-spacing: 0; color: var(--ink-3); }
+.judge .n { margin-left: 6px; font-variant-numeric: tabular-nums; color: var(--ink-3); }
 .judge .n.error { color: var(--error); }
 .judge .n.warn { color: var(--warn); }
 .tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
@@ -118,10 +118,6 @@ button, input, select { font: inherit; color: inherit; }
 }
 .tools input[type="search"]::placeholder { color: var(--ink-3); }
 .tools input[type="search"]:focus { outline: none; border-bottom-color: var(--accent); }
-.tools select {
-  background: transparent; border: 0; border-bottom: 1px solid var(--line); padding: 4px 0;
-  font-size: 12px; color: var(--ink-2); cursor: pointer;
-}
 .round {
   width: 32px; height: 32px; border-radius: 999px; border: 1px solid var(--line); background: var(--tint);
   cursor: pointer; display: grid; place-items: center; color: var(--ink-3); transition: color 0.2s, border-color 0.2s;
@@ -131,21 +127,26 @@ button, input, select { font: inherit; color: inherit; }
 
 /* ------------------------------------------------------------ 見出し */
 .head { padding-block: 56px 32px; }
-.head h1 { font-size: clamp(24px, 3.6vw, 34px); font-weight: 300; letter-spacing: 0.06em; color: var(--ink); line-height: 1.3; }
+.head h1 { font-size: clamp(24px, 3.6vw, 34px); font-weight: 300; color: var(--ink); line-height: 1.3; }
 .lead { margin-top: 12px; font-size: 13px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .lead .sep { margin-inline: 8px; color: var(--ink-4); }
-.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 32px; }
+.fw { margin-top: 20px; }
+.fw button { font-size: 14px; }
+.chips { display: grid; gap: 14px; margin-top: 28px; max-width: 60rem; }
+.rule-row { display: grid; grid-template-columns: 4em minmax(0, 1fr); align-items: baseline; gap: 4px; }
+.rule-verdict { font-size: 13px; color: var(--ink-3); }
+.rule-row.error .rule-verdict { color: var(--error); }
+.rule-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0 8px; margin-left: -6px; }
 .chip {
-  border: 1px solid var(--line); background: none; border-radius: 999px; cursor: pointer;
-  padding: 5px 12px; font-size: 11.5px; letter-spacing: 0.03em; color: var(--ink-3); white-space: nowrap;
-  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+  border: 0; background: none; border-radius: 4px; cursor: pointer;
+  padding: 3px 6px; font-size: 14px; color: var(--ink-2); white-space: nowrap; text-align: left;
+  transition: color 0.2s, background-color 0.2s;
 }
-.chip:hover { color: var(--ink); border-color: var(--ink-4); }
-.chip[aria-pressed="true"] { color: var(--ink); border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.chip .n { margin-left: 6px; font-variant-numeric: tabular-nums; }
-.chip .n.error { color: var(--error); }
-.chip .n.warn { color: var(--warn); }
-.chips-none { font-size: 12.5px; color: var(--ink-3); }
+.chip:hover { color: var(--ink); background: var(--tint); }
+.chip[aria-pressed="true"] { color: var(--ink); background: color-mix(in srgb, var(--accent) 14%, transparent); box-shadow: inset 0 -1px 0 var(--accent); }
+.chip .n { display: inline-block; min-width: 2ch; margin-right: 8px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+.rule-row.error .chip .n { color: var(--error); }
+.chips-none { font-size: 13px; color: var(--ink-3); }
 
 /* ------------------------------------------------------------ ファイル */
 main { padding-block: 8px 96px; }
@@ -153,7 +154,7 @@ main { padding-block: 8px 96px; }
 .file:first-child { margin-top: 16px; }
 .file-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding-bottom: 12px; }
 .file-head h2 { font-size: 13px; color: var(--ink); word-break: break-all; }
-.file-head .meta { font-size: 11.5px; letter-spacing: 0.08em; color: var(--ink-3); }
+.file-head .meta { font-size: 12px; color: var(--ink-3); }
 .file-head .meta .n { color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .file-empty { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; font-size: 13px; color: var(--ink-3); }
 
@@ -165,7 +166,7 @@ main { padding-block: 8px 96px; }
 .spec tbody td { border-top: 1px solid var(--line); }
 .spec thead th {
   padding-block: 9px; background: var(--tint);
-  font-size: 11px; font-weight: 400; letter-spacing: 0.16em; color: var(--ink-3); white-space: nowrap;
+  font-size: 12px; font-weight: 400; color: var(--ink-3); white-space: nowrap;
 }
 .spec col.c-no { width: 5rem; }
 .spec col.c-title { width: 22%; }
@@ -173,7 +174,7 @@ main { padding-block: 8px 96px; }
 .spec col.c-asserts { width: 31%; }
 .spec col.c-judge { width: 20%; }
 .spec tr.group td {
-  padding-block: 8px; background: var(--tint); font-size: 11.5px; letter-spacing: 0.08em; color: var(--ink-3);
+  padding-block: 8px; background: var(--tint); font-size: 12px; color: var(--ink-3);
 }
 .spec tr.group .sep { margin-inline: 8px; color: var(--ink-4); }
 .spec tr.case { cursor: pointer; scroll-margin-top: 84px; }
@@ -183,7 +184,7 @@ main { padding-block: 8px 96px; }
 
 .no-btn {
   background: none; border: 0; padding: 0; cursor: pointer; white-space: nowrap;
-  font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-3); transition: color 0.2s;
+  font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ink-3); transition: color 0.2s;
 }
 .no-btn::before { content: "›"; display: inline-block; width: 1em; color: var(--ink-4); transition: transform 0.25s; }
 .spec tr.case:hover .no-btn { color: var(--ink); }
@@ -191,15 +192,15 @@ main { padding-block: 8px 96px; }
 .is-open .no-btn::before { transform: rotate(90deg); color: var(--accent); }
 
 .title { font-size: 14.5px; color: var(--ink); line-height: 1.6; }
-.mods { display: block; margin-bottom: 4px; font-size: 11px; letter-spacing: 0.08em; color: var(--ink-3); }
+.mods { display: block; margin-bottom: 4px; font-size: 12px; color: var(--ink-3); }
 .mods span + span::before { content: " · "; color: var(--ink-4); }
 .mods .m-only { color: var(--error); }
 .spec ol, .spec ul { margin: 0; padding: 0; list-style: none; }
 .steps { counter-reset: s; font-size: 13px; }
 .steps li { counter-increment: s; padding-left: 1.7em; position: relative; }
 .steps li::before {
-  content: counter(s); position: absolute; left: 0; top: 0.15em; font-size: 11px;
-  color: var(--ink-4); font-variant-numeric: tabular-nums;
+  content: counter(s); position: absolute; left: 0; top: 0.15em; font-size: 12px;
+  color: var(--ink-3); font-variant-numeric: tabular-nums;
 }
 .steps li.nested { counter-increment: none; }
 .steps li.nested::before { content: "└"; }
@@ -207,9 +208,9 @@ main { padding-block: 8px 96px; }
 .steps .verb { color: var(--ink-3); margin-right: 8px; font-size: 12px; }
 .steps .verb.wait { color: var(--warn); }
 .steps code, .asserts code { font-size: 12px; color: var(--ink-2); }
-.nil { color: var(--ink-4); }
+.nil { color: var(--ink-3); }
 .nil.bad { color: var(--error); }
-.verdict { font-size: 12.5px; letter-spacing: 0.08em; }
+.verdict { font-size: 12.5px; }
 .verdict.ok { color: var(--ink-3); }
 .findings { margin-top: 6px; font-size: 12px; color: var(--ink-3); }
 .findings li + li { margin-top: 2px; }
@@ -217,12 +218,12 @@ main { padding-block: 8px 96px; }
 /* ------------------------------------------------------------ 開いた行 */
 .spec tr.detail > td { padding: 20px 20px 32px 5rem; border-top: 1px dashed var(--line); }
 .detail-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; max-width: 980px; }
-.label { font-size: 11px; letter-spacing: 0.16em; color: var(--ink-3); margin-bottom: 12px; }
+.label { font-size: 12px; color: var(--ink-3); margin-bottom: 12px; }
 .issue { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: 0 16px; padding-block: 12px; border-top: 1px solid var(--line-2); }
 .issue:first-of-type { border-top: 0; padding-top: 0; }
-.issue .sev { font-size: 12px; letter-spacing: 0.08em; padding-top: 1px; }
+.issue .sev { font-size: 12px; padding-top: 1px; }
 .issue-title { color: var(--ink); font-size: 13.5px; }
-.issue-title .rule-id { margin-left: 10px; font-size: 11px; color: var(--ink-4); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.issue-title .rule-id { margin-left: 10px; font-size: 12px; color: var(--ink-3); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 .issue-title .link { margin-left: 12px; color: var(--accent); }
 .issue p { margin-top: 4px; font-size: 13px; }
 .issue dl { margin: 10px 0 0; display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: 4px 12px; font-size: 12.5px; }
@@ -231,14 +232,14 @@ main { padding-block: 8px 96px; }
 
 .source-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 20px; margin-bottom: 12px; }
 .source-head .label { margin: 0; }
-.source-head .loc { font-size: 11.5px; color: var(--ink-3); }
-.legend { display: flex; gap: 16px; font-size: 11px; color: var(--ink-3); }
+.source-head .loc { font-size: 12px; color: var(--ink-3); }
+.legend { display: flex; gap: 16px; font-size: 12px; color: var(--ink-3); }
 .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
 .legend .l-assert { background: var(--hl-assert); box-shadow: inset 0 0 0 1px var(--line); }
 .legend .l-warn { background: var(--hl-warn); box-shadow: inset 0 0 0 1px var(--line); }
 .source { margin: 0; background: var(--tint); border-radius: 8px; overflow-x: auto; padding: 12px 0; line-height: 1.7; }
 .source .line { display: flex; min-width: max-content; padding-right: 16px; transition: box-shadow 0.3s; }
-.source .ln { flex: 0 0 auto; width: 3.6em; text-align: right; padding-right: 16px; color: var(--ink-4); user-select: none; font-variant-numeric: tabular-nums; }
+.source .ln { flex: 0 0 auto; width: 3.6em; text-align: right; padding-right: 16px; color: var(--ink-3); user-select: none; font-variant-numeric: tabular-nums; }
 .source .code { white-space: pre; color: var(--ink-2); }
 .source .is-assert { background: var(--hl-assert); }
 .source .is-warn { background: var(--hl-warn); }
@@ -262,7 +263,7 @@ main { padding-block: 8px 96px; }
   .spec > tbody > tr.group:first-child, .spec > tbody > tr.case:first-child { border-top: 0; }
   .spec tr.case > td { padding: 0; border: 0; }
   .spec tr.case > td + td { margin-top: 10px; }
-  .spec tr.case > td[data-label]::before { content: attr(data-label); display: block; font-size: 10.5px; letter-spacing: 0.16em; color: var(--ink-3); margin-bottom: 2px; }
+  .spec tr.case > td[data-label]::before { content: attr(data-label); display: block; font-size: 12px; color: var(--ink-3); margin-bottom: 2px; }
   .spec tr.group td { border-top: 1px solid var(--line); }
   .spec > tbody > tr.group:first-child td { border-top: 0; }
   .spec tr.detail > td { padding: 16px; }

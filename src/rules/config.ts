@@ -15,7 +15,9 @@ export function validateRulesConfig(rules: unknown): RulesConfig {
       throw new Error(`未知のルールです: "${id}"（指定できるルール: ${RULE_IDS.join(", ")}）`);
     }
     if (!["off", "warn", "error"].includes(value as string)) {
-      throw new Error(`ルール "${id}" の値は "off" / "warn" / "error" のいずれかにしてください（指定値: ${JSON.stringify(value)}）`);
+      throw new Error(
+        `ルール "${id}" の値は "off" / "warn" / "error" のいずれかにしてください（指定値: ${JSON.stringify(value)}）`,
+      );
     }
   }
   return rules as RulesConfig;

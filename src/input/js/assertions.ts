@@ -144,11 +144,9 @@ function isConditional(node: ts.Node, stop: ts.Node): boolean {
     if (
       ts.isBinaryExpression(cur) &&
       cur.right === child &&
-      [
-        ts.SyntaxKind.AmpersandAmpersandToken,
-        ts.SyntaxKind.BarBarToken,
-        ts.SyntaxKind.QuestionQuestionToken,
-      ].includes(cur.operatorToken.kind)
+      [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(
+        cur.operatorToken.kind,
+      )
     ) {
       return true;
     }

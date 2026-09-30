@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { beforeEach, describe, expect, it } from "vitest";
-import { main, type Io } from "../src/cli/main.js";
-import { specJsonSchema, type SpecJson } from "../src/index.js";
+import { type Io, main } from "../src/cli/main.js";
+import { type SpecJson, specJsonSchema } from "../src/index.js";
 
 let cwd: string;
 let out: string[];

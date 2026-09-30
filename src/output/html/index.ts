@@ -35,7 +35,6 @@ ${asset("styles.css")}
     <nav class="judge" id="judge" aria-label="判定で絞り込む"></nav>
     <div class="tools">
       <input type="search" id="q" placeholder="検索" aria-label="検索（テスト名・手順・期待結果・ファイル名）">
-      <select id="framework" aria-label="フレームワーク"><option value="">すべてのフレームワーク</option></select>
       <button type="button" class="link" id="expand">すべて開く</button>
       <button type="button" class="link" id="collapse">閉じる</button>
       <button type="button" class="round" id="theme" aria-label="表示テーマを切り替える"></button>
@@ -46,6 +45,7 @@ ${asset("styles.css")}
 <header class="head wrap">
   <h1>${escapeHtml(title)}</h1>
   <p class="lead" id="lead"></p>
+  <nav class="judge fw" id="framework" aria-label="フレームワークで絞り込む" hidden></nav>
   <nav class="chips" id="rules" aria-label="指摘の種類で絞り込む"></nav>
 </header>
 

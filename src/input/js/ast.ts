@@ -76,7 +76,7 @@ export function collapse(text: string): string {
 
 export function truncate(text: string, max = 80): string {
   const chars = Array.from(text);
-  return chars.length <= max ? text : chars.slice(0, max - 1).join("") + "…";
+  return chars.length <= max ? text : `${chars.slice(0, max - 1).join("")}…`;
 }
 
 /** ノードのソースを、宣言位置のインデントを基準に字下げを戻して返す */
@@ -86,9 +86,7 @@ export function dedentedText(node: ts.Node): string {
   const lineStart = sf.getLineStarts()[sf.getLineAndCharacterOfPosition(start).line] ?? 0;
   const indent = /^[ \t]*/.exec(sf.text.slice(lineStart, start))?.[0].length ?? 0;
   const lines = node.getText(sf).split(/\r?\n/);
-  return lines
-    .map((line, i) => (i === 0 ? line : line.replace(new RegExp(`^[ \\t]{0,${indent}}`), "")))
-    .join("\n");
+  return lines.map((line, i) => (i === 0 ? line : line.replace(new RegExp(`^[ \\t]{0,${indent}}`), ""))).join("\n");
 }
 
 /** コメントと空白を除いたトークン列（重複検出用の正規化） */
@@ -103,6 +101,7 @@ export function tokenize(node: ts.Node): string {
 }
 
 /** 子孫を出現順にたどる（visit が false を返したら、その子孫には入らない） */
+// biome-ignore lint/suspicious/noConfusingVoidType: visit は何も返さなくてよい（false のときだけ子孫を飛ばす）
 export function walk(node: ts.Node, visit: (node: ts.Node) => boolean | void): void {
   const rec = (n: ts.Node): void => {
     if (visit(n) === false) return;

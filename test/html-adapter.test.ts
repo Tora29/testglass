@@ -29,7 +29,10 @@ describe("htmlAdapter", () => {
 
   it("テスト名に </script> や HTML が含まれても、埋め込みが壊れない", () => {
     const evil = buildSpec([
-      { path: "x.test.ts", source: `import { it, expect } from "vitest";\nit("</script><img src=x onerror=alert(1)>", () => { expect(1).toBe(1); });` },
+      {
+        path: "x.test.ts",
+        source: `import { it, expect } from "vitest";\nit("</script><img src=x onerror=alert(1)>", () => { expect(1).toBe(1); });`,
+      },
     ]).spec;
     const html = htmlAdapter.render(evil, { title: "<b>仕様書</b>" })[0]!.content;
     expect(html).not.toContain("</script><img");
