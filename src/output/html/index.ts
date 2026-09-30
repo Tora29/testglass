@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import type { OutputAdapter } from "../../adapters/types.js";
 import { RULES } from "../../rules/catalog.js";
 import type { SpecJson } from "../../schema/types.js";
+import { describeStep, MODIFIER_LABELS, reportCases, VERDICT_LABELS } from "../report.js";
 
 export interface HtmlOptions {
   /** ページのタイトル（既定: "テスト仕様書"） */
@@ -17,7 +18,10 @@ export const htmlAdapter: OutputAdapter<HtmlOptions> = {
   name: "html",
   render(spec: SpecJson, options: HtmlOptions = {}) {
     const title = options.title ?? "テスト仕様書";
-    const payload = { spec, rules: RULES };
+    const cases = reportCases(spec).map((fileCases) =>
+      fileCases.map((c) => ({ no: c.no, verdict: c.verdict, steps: c.test.steps.map(describeStep) })),
+    );
+    const payload = { spec, rules: RULES, labels: { verdicts: VERDICT_LABELS, modifiers: MODIFIER_LABELS }, cases };
     const content = `<!doctype html>
 <html lang="ja">
 <head>
