@@ -1,0 +1,53 @@
+{
+  "name": "testglass",
+  "version": "0.1.0",
+  "description": "Generate a human-reviewable test specification (single-file HTML) from test code by static analysis",
+  "keywords": [
+    "test",
+    "specification",
+    "review",
+    "vitest",
+    "playwright",
+    "static-analysis"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "testglass": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./schema.json": "./dist/schema.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && node -e \"require('node:fs').cpSync('src/output/html/assets','dist/output/html/assets',{recursive:true})\" && node dist/cli.js schema --out dist/schema.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "demo": "npm run build && node dist/cli.js --root test/fixtures --out demo/spec.json",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "tinyglobby": "^0.2.17",
+    "typescript": "~6.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "ajv": "^8.20.0",
+    "vitest": "^5.0.2"
+  }
+}
