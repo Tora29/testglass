@@ -23,7 +23,7 @@ AI にテストを書かせると、量が多く、実装まで全部は読み�
 
 ## 使い方
 
-Node.js 20 以上（Bun でも動きます）。
+Node.js 22.12 以上（Bun でも動きます）。
 
 ```sh
 npm i -D testglass
@@ -336,7 +336,7 @@ const [csv] = csvAdapter.render(spec, { bom: false });
 
 ```sh
 npm install
-npm test          # Vitest（開発には Node 22.12 以上が必要。ライブラリ自体は Node 20 で動く）
+npm test          # Vitest
 npm run typecheck
 npm run lint      # Biome（整形の差分は npm run format で直す）
 npm run build
