@@ -11,7 +11,6 @@
 
   /** 判定：テストについた警告のうち最も重いもの */
   var VERDICT = { error: "要修正", warn: "要確認", ok: "問題なし" };
-  var VERDICT_ORDER = { error: 0, warn: 1, ok: 2 };
 
   var MODIFIER = {
     skip: { label: "スキップ", title: ".skip / .fixme：実行されない" },
@@ -136,16 +135,23 @@
       entries.push({ file: file, test: test, verdict: verdictOf(test) });
     });
   });
-  var counts = { all: entries.length, error: 0, warn: 0, ok: 0 };
-  var byRule = {};
-  entries.forEach(function (e) {
-    counts[e.verdict]++;
-    uniqueRules(e.test.warnings).forEach(function (w) {
-      var r = (byRule[w.rule] = byRule[w.rule] || { n: 0, verdict: "warn" });
-      r.n++;
-      if (w.severity === "error") r.verdict = "error";
+  /** 判定ごと・指摘の種類ごとの件数。framework を指定するとそのフレームワークだけを数える */
+  function tally(framework) {
+    var counts = { all: 0, error: 0, warn: 0, ok: 0 };
+    var byRule = {};
+    entries.forEach(function (e) {
+      if (framework && e.file.framework !== framework) return;
+      counts.all++;
+      counts[e.verdict]++;
+      uniqueRules(e.test.warnings).forEach(function (w) {
+        var r = (byRule[w.rule] = byRule[w.rule] || { n: 0, verdict: "warn" });
+        r.n++;
+        if (w.severity === "error") r.verdict = "error";
+      });
     });
-  });
+    return { counts: counts, byRule: byRule };
+  }
+  var total = tally("").counts;
 
   // ---------------------------------------------------------------- 見出し
   var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(spec.generatedAt);
@@ -153,7 +159,7 @@
   [
     m ? m[1] + "." + m[2] + "." + m[3] + " " + m[4] + ":" + m[5] : spec.generatedAt,
     spec.files.length + " files",
-    counts.all + " tests",
+    total.all + " tests",
     "静的解析（テストは実行していない）",
   ].forEach(function (text, i) {
     if (i) lead.appendChild(el("span", { class: "sep", text: "·" }));
@@ -162,33 +168,47 @@
 
   var state = { verdict: "all", q: "", framework: "", rule: "" };
 
-  // 指摘の種類ごとのチップ（クリックで絞り込み）
+  // 指摘の種類ごとの件数（判定ごとに1行。クリックで絞り込み）
   var chips = document.getElementById("rules");
   var chipButtons = [];
-  var found = payload.rules
-    .filter(function (r) {
-      return byRule[r.id];
-    })
-    .sort(function (a, b) {
-      return (
-        VERDICT_ORDER[byRule[a.id].verdict] - VERDICT_ORDER[byRule[b.id].verdict] || byRule[b.id].n - byRule[a.id].n
+  function renderChips(byRule) {
+    chips.textContent = "";
+    chipButtons = [];
+    var found = payload.rules
+      .filter(function (r) {
+        return byRule[r.id];
+      })
+      .sort(function (a, b) {
+        return byRule[b.id].n - byRule[a.id].n;
+      });
+    if (!found.length) chips.appendChild(el("p", { class: "chips-none", text: "指摘なし" }));
+    ["error", "warn"].forEach(function (verdict) {
+      var inRow = found.filter(function (r) {
+        return byRule[r.id].verdict === verdict;
+      });
+      if (!inRow.length) return;
+      var items = el("div", { class: "rule-items" });
+      inRow.forEach(function (r) {
+        var chip = el(
+          "button",
+          { type: "button", class: "chip", "aria-pressed": "false", title: r.description + "（" + r.id + "）" },
+          [el("span", { class: "n", text: String(byRule[r.id].n) }), r.label],
+        );
+        chip.addEventListener("click", function () {
+          setRule(state.rule === r.id ? "" : r.id);
+        });
+        chip._rule = r.id;
+        chipButtons.push(chip);
+        items.appendChild(chip);
+      });
+      chips.appendChild(
+        el("div", { class: "rule-row " + verdict }, [
+          el("span", { class: "rule-verdict", text: VERDICT[verdict] }),
+          items,
+        ]),
       );
     });
-  if (!found.length) chips.appendChild(el("p", { class: "chips-none", text: "指摘なし" }));
-  found.forEach(function (r) {
-    var c = byRule[r.id];
-    var chip = el(
-      "button",
-      { type: "button", class: "chip", "aria-pressed": "false", title: r.description + "（" + r.id + "）" },
-      [r.label, el("span", { class: "n " + c.verdict, text: String(c.n) })],
-    );
-    chip.addEventListener("click", function () {
-      setRule(state.rule === r.id ? "" : r.id);
-    });
-    chip._rule = r.id;
-    chipButtons.push(chip);
-    chips.appendChild(chip);
-  });
+  }
 
   // ---------------------------------------------------------------- ツールバー
   var judge = document.getElementById("judge");
@@ -199,32 +219,70 @@
     ["warn", "要確認"],
     ["ok", "問題なし"],
   ].forEach(function (j) {
-    var btn = el("button", { type: "button", "aria-pressed": "false" }, [
-      j[1],
-      el("span", {
-        class: "n" + (counts[j[0]] && (j[0] === "error" || j[0] === "warn") ? " " + j[0] : ""),
-        text: String(counts[j[0]]),
-      }),
-    ]);
+    var n = el("span", { class: "n" });
+    var btn = el("button", { type: "button", "aria-pressed": "false" }, [j[1], n]);
     btn.addEventListener("click", function () {
       state.verdict = j[0];
       update();
     });
     btn._verdict = j[0];
+    btn._n = n;
     judgeButtons.push(btn);
     judge.appendChild(btn);
   });
 
+  function renderJudgeCounts(counts) {
+    judgeButtons.forEach(function (b) {
+      var v = b._verdict;
+      b._n.className = "n" + (counts[v] && (v === "error" || v === "warn") ? " " + v : "");
+      b._n.textContent = String(counts[v]);
+    });
+  }
+
+  /** 件数の表示を、選んでいるフレームワークに合わせて作り直す */
+  var countedFramework = null;
+  function renderCounts() {
+    if (countedFramework === state.framework) return;
+    countedFramework = state.framework;
+    var t = tally(state.framework);
+    // 選んでいた指摘がこのフレームワークに無ければ、その絞り込みを外す
+    if (state.rule && !t.byRule[state.rule]) state.rule = "";
+    renderJudgeCounts(t.counts);
+    renderChips(t.byRule);
+  }
+
   var qInput = document.getElementById("q");
-  var fwSelect = document.getElementById("framework");
-  var frameworks = [];
-  spec.files.forEach(function (f) {
-    if (frameworks.indexOf(f.framework) < 0) frameworks.push(f.framework);
+
+  // フレームワークごとのタブ（2種類以上あるときだけ出す）
+  var fwNav = document.getElementById("framework");
+  var fwButtons = [];
+  var byFramework = {};
+  entries.forEach(function (e) {
+    byFramework[e.file.framework] = (byFramework[e.file.framework] || 0) + 1;
   });
-  frameworks.sort().forEach(function (fw) {
-    fwSelect.appendChild(el("option", { value: fw, text: fw }));
-  });
-  if (frameworks.length < 2) fwSelect.hidden = true;
+  var frameworks = Object.keys(byFramework).sort();
+  if (frameworks.length >= 2) {
+    fwNav.hidden = false;
+    [["", "すべて", total.all]]
+      .concat(
+        frameworks.map(function (fw) {
+          return [fw, fw, byFramework[fw]];
+        }),
+      )
+      .forEach(function (f) {
+        var btn = el("button", { type: "button", "aria-pressed": "false" }, [
+          f[1],
+          el("span", { class: "n", text: String(f[2]) }),
+        ]);
+        btn.addEventListener("click", function () {
+          state.framework = f[0];
+          update();
+        });
+        btn._framework = f[0];
+        fwButtons.push(btn);
+        fwNav.appendChild(btn);
+      });
+  }
 
   function setRule(id) {
     state.rule = id;
@@ -535,7 +593,6 @@
     state.q = "";
     qInput.value = "";
     state.framework = "";
-    fwSelect.value = "";
     setRule("");
   });
   var noResults = el("p", { class: "no-results", hidden: true }, ["該当するテストはない", resetBtn]);
@@ -562,6 +619,7 @@
   }
 
   function update() {
+    renderCounts();
     var shown = 0;
     rows.forEach(function (row) {
       row.visible = matches(row);
@@ -593,14 +651,13 @@
     chipButtons.forEach(function (b) {
       b.setAttribute("aria-pressed", String(b._rule === state.rule));
     });
+    fwButtons.forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b._framework === state.framework));
+    });
   }
 
   qInput.addEventListener("input", function () {
     state.q = qInput.value.trim();
-    update();
-  });
-  fwSelect.addEventListener("change", function () {
-    state.framework = fwSelect.value;
     update();
   });
   document.getElementById("expand").addEventListener("click", function () {

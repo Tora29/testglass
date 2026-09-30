@@ -17,7 +17,7 @@ export interface RuleMeta {
 export const RULES = [
   {
     id: "no-assertions",
-    label: "結果の確認なし",
+    label: "expect がない",
     defaultSeverity: "error",
     description: "アサーション（expect など）が1件もない",
     why: "処理を実行するだけで結果を確認していない。実装が壊れていてもテストは成功する。",
@@ -25,7 +25,7 @@ export const RULES = [
   },
   {
     id: "focused-test",
-    label: ".only の残存",
+    label: ".only が残っている",
     defaultSeverity: "error",
     description: ".only が残っている",
     why: "同じファイルの他のテストが実行されず、失敗に気づけない。",
@@ -33,7 +33,7 @@ export const RULES = [
   },
   {
     id: "skipped-test",
-    label: "スキップ・未実装",
+    label: "skip・todo が残っている",
     defaultSeverity: "warn",
     description: ".skip / .fixme / .todo が残っている",
     why: "実行されないため、何も保証していない。",
@@ -41,7 +41,7 @@ export const RULES = [
   },
   {
     id: "weak-assertions-only",
-    label: "真偽のみの確認",
+    label: "toBeTruthy だけ",
     defaultSeverity: "warn",
     description: "toBeTruthy / toBeDefined など、真偽・存在の確認だけで検証している",
     why: "toBeTruthy / toBeDefined は値があることしか確認しない。誤った値でも成功する。",
@@ -49,7 +49,7 @@ export const RULES = [
   },
   {
     id: "snapshot-only",
-    label: "スナップショットのみ",
+    label: "スナップショットだけ",
     defaultSeverity: "warn",
     description: "スナップショットの比較だけで検証している",
     why: "前回の結果との一致しか確認しないため、正しい結果が何かをテストから読み取れない。誤った結果を保存しても気づけない。",
@@ -57,7 +57,7 @@ export const RULES = [
   },
   {
     id: "mock-calls-only",
-    label: "モック呼び出しのみ",
+    label: "モックの呼び出しだけ",
     defaultSeverity: "warn",
     description: "モックの呼び出し検証だけで、結果を見ていない",
     why: "モックが呼ばれたことしか確認しておらず、処理結果の正しさは確認していない。",
@@ -65,7 +65,7 @@ export const RULES = [
   },
   {
     id: "conditional-assertion",
-    label: "条件付きの確認",
+    label: "分岐の中の expect",
     defaultSeverity: "warn",
     description: "条件分岐（if / 三項 / && / switch / catch）の中にアサーションがある",
     why: "条件によっては expect が実行されず、何も確認しないまま成功する。",
@@ -73,7 +73,7 @@ export const RULES = [
   },
   {
     id: "fixed-wait",
-    label: "固定時間の待機",
+    label: "固定時間の sleep",
     defaultSeverity: "warn",
     description: "固定時間の待ち（waitForTimeout / sleep など）がある",
     why: "遅い環境では失敗の原因になり、速い環境では時間の無駄になる。",
@@ -81,7 +81,7 @@ export const RULES = [
   },
   {
     id: "dynamic-test",
-    label: "動的生成",
+    label: "each・ループで生成",
     defaultSeverity: "warn",
     description: "it.each やループなどで動的に生成され、静的解析では展開できない",
     why: "実行時にテストが生成されるため、件数やテストデータをこの仕様書では確認できない。",
@@ -89,7 +89,7 @@ export const RULES = [
   },
   {
     id: "duplicate-title",
-    label: "テスト名の重複",
+    label: "同名のテスト",
     defaultSeverity: "warn",
     description: "同じ describe の中に同名のテストがある",
     why: "失敗したときに、どのテストが失敗したのか区別できない。",
@@ -97,7 +97,7 @@ export const RULES = [
   },
   {
     id: "duplicate-body",
-    label: "内容の重複",
+    label: "中身が同じテスト",
     defaultSeverity: "warn",
     description: "本体（コメント・空白を除く）が同一のテストがある",
     why: "同じ内容を重複して確認しており、テスト件数を水増ししている。",
