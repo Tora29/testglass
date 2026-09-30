@@ -1,6 +1,6 @@
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
-import { specJsonSchema, type SpecJson } from "../src/index.js";
+import { type SpecJson, specJsonSchema } from "../src/index.js";
 
 const validate = new Ajv2020({ strict: true, validateFormats: false }).compile(specJsonSchema);
 

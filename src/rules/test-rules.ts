@@ -1,5 +1,5 @@
 import type { Warning } from "../schema/types.js";
-import { ruleMeta, type RuleId } from "./catalog.js";
+import { type RuleId, ruleMeta } from "./catalog.js";
 import type { DynamicFact, TestFacts } from "./facts.js";
 
 interface Finding {
@@ -30,7 +30,8 @@ export const TEST_RULES: Partial<Record<RuleId, TestRule>> = {
 
   "skipped-test": (f) => {
     if (f.modifiers.includes("todo")) return [{ message: ".todo のまま未実装", line: f.location.line }];
-    if (f.modifiers.includes("skip")) return [{ message: ".skip / .fixme でスキップされている", line: f.location.line }];
+    if (f.modifiers.includes("skip"))
+      return [{ message: ".skip / .fixme でスキップされている", line: f.location.line }];
     return [];
   },
 

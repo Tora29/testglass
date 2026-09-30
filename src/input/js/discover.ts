@@ -1,6 +1,6 @@
+import type { DynamicFact } from "../../rules/facts.js";
 import type { Modifier } from "../../schema/types.js";
 import { MODIFIERS } from "../../schema/types.js";
-import type { DynamicFact } from "../../rules/facts.js";
 import { flattenChain, isFunctionLike, lineOf, stringValue, ts } from "./ast.js";
 
 /** JS/TS 系フレームワークごとの差分。これを変えるだけで jest / bun test なども扱える。 */

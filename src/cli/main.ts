@@ -82,7 +82,7 @@ async function run(argv: string[], io: Io): Promise<number> {
 
   switch (command) {
     case "schema": {
-      const text = JSON.stringify(specJsonSchema, null, 2) + "\n";
+      const text = `${JSON.stringify(specJsonSchema, null, 2)}\n`;
       const out = str("out");
       if (out) await writeText(resolve(io.cwd, out), text);
       else io.stdout(text);
@@ -96,7 +96,10 @@ async function run(argv: string[], io: Io): Promise<number> {
       const specPath = resolve(io.cwd, str("out") ?? (config.out ? join(root, config.out) : DEFAULT_OUT));
       const spec = await runCollect(root, specPath, config, io);
       if (command === "all") {
-        const outDir = resolve(io.cwd, str("out-dir") ?? (config.outDir ? join(root, config.outDir) : dirname(specPath)));
+        const outDir = resolve(
+          io.cwd,
+          str("out-dir") ?? (config.outDir ? join(root, config.outDir) : dirname(specPath)),
+        );
         await runRender(spec, outDir, formatsOf(str("format"), config), config, io);
       }
       return exitCode(spec, failOn);
@@ -126,7 +129,7 @@ async function runCollect(root: string, specPath: string, config: TestglassConfi
     rules: config.rules,
     adapters: [...(config.inputAdapters ?? []), ...builtinInputAdapters],
   });
-  await writeText(specPath, JSON.stringify(spec, null, 2) + "\n");
+  await writeText(specPath, `${JSON.stringify(spec, null, 2)}\n`);
 
   const tests = spec.files.flatMap((f) => f.tests);
   const warnings = tests.flatMap((t) => t.warnings);
@@ -179,7 +182,9 @@ async function readSpec(path: string): Promise<SpecJson> {
     throw new Error(`spec.json を読めません: ${path}（${(e as Error).message}）`);
   }
   if (spec?.schemaVersion !== SCHEMA_VERSION) {
-    throw new Error(`対応していない schemaVersion です: ${String(spec?.schemaVersion)}（このバージョンは ${SCHEMA_VERSION} に対応）`);
+    throw new Error(
+      `対応していない schemaVersion です: ${String(spec?.schemaVersion)}（このバージョンは ${SCHEMA_VERSION} に対応）`,
+    );
   }
   return spec;
 }

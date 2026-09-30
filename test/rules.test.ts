@@ -4,12 +4,7 @@ import { buildSpec } from "../src/core/collect.js";
 import { validateRulesConfig } from "../src/rules/config.js";
 import type { SpecJson } from "../src/schema/types.js";
 
-const FIXTURES = [
-  "vitest/cart.test.ts",
-  "vitest/weak.test.ts",
-  "playwright/login.spec.ts",
-  "playwright/weak.spec.ts",
-];
+const FIXTURES = ["vitest/cart.test.ts", "vitest/weak.test.ts", "playwright/login.spec.ts", "playwright/weak.spec.ts"];
 const inputs = FIXTURES.map((path) => ({ path, source: readFileSync(`test/fixtures/${path}`, "utf8") }));
 
 /** "path > テスト名" → 警告ルールID（ソート済み、重複除去） */

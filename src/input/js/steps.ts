@@ -31,16 +31,11 @@ function blockHeader(stmt: ts.Statement): string | undefined {
   const head = (inner: ts.Node): string =>
     `${collapse(stmt.getText().slice(0, inner.getStart() - stmt.getStart()))} { … }`;
   if (ts.isIfStatement(stmt)) return head(stmt.thenStatement) + (stmt.elseStatement ? " else { … }" : "");
-  if (
-    ts.isForStatement(stmt) ||
-    ts.isForOfStatement(stmt) ||
-    ts.isForInStatement(stmt) ||
-    ts.isWhileStatement(stmt)
-  ) {
+  if (ts.isForStatement(stmt) || ts.isForOfStatement(stmt) || ts.isForInStatement(stmt) || ts.isWhileStatement(stmt)) {
     return head(stmt.statement);
   }
   if (ts.isDoStatement(stmt)) return `do { … } while (${collapse(stmt.expression.getText())})`;
-  if (ts.isTryStatement(stmt)) return "try { … }" + (stmt.catchClause ? " catch { … }" : "");
+  if (ts.isTryStatement(stmt)) return `try { … }${stmt.catchClause ? " catch { … }" : ""}`;
   if (ts.isSwitchStatement(stmt)) return `switch (${collapse(stmt.expression.getText())}) { … }`;
   if (ts.isBlock(stmt)) return "{ … }";
   return undefined;

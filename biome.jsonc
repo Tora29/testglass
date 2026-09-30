@@ -1,0 +1,78 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    // fixtures は「問題のあるテスト」を解析するための入力なので、整形も lint もしない
+    "includes": ["**", "!!**/dist", "!test/fixtures"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 120
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "style": {
+        // noUncheckedIndexedAccess の下で、存在が分かっている値に ! を使う
+        "noNonNullAssertion": "off"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double"
+    }
+  },
+  "css": {
+    // styles.css は 1 行 1 ルールで詰めて書いている
+    "formatter": { "enabled": false }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "overrides": [
+    {
+      // HTML に埋め込むクライアントスクリプト。依存なし・ES5 の書き方（var / function / 文字列連結）で書く
+      "includes": ["src/output/html/assets/client.js"],
+      "linter": {
+        "rules": {
+          "complexity": { "useArrowFunction": "off", "useOptionalChain": "off" },
+          "style": { "useTemplate": "off" },
+          "correctness": { "noInnerDeclarations": "off", "noUnusedVariables": "off" },
+          "suspicious": { "noAssignInExpressions": "off", "noRedundantUseStrict": "off" }
+        }
+      }
+    },
+    {
+      // !important は [hidden] と prefers-reduced-motion で意図的に使う。詳細度の順はセクションごとに並べている
+      "includes": ["src/output/html/assets/styles.css"],
+      "linter": {
+        "rules": {
+          "complexity": { "noImportantStyles": "off" },
+          "style": { "noDescendingSpecificity": "off" }
+        }
+      }
+    },
+    {
+      // テスト名に "${name}" をそのまま含むケースを検証している
+      "includes": ["test/**"],
+      "linter": {
+        "rules": {
+          "suspicious": { "noTemplateCurlyInString": "off" }
+        }
+      }
+    }
+  ]
+}

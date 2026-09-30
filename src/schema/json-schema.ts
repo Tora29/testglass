@@ -27,17 +27,7 @@ export const specJsonSchema = {
     TestCase: {
       type: "object",
       additionalProperties: false,
-      required: [
-        "id",
-        "suites",
-        "title",
-        "location",
-        "modifiers",
-        "steps",
-        "assertions",
-        "warnings",
-        "source",
-      ],
+      required: ["id", "suites", "title", "location", "modifiers", "steps", "assertions", "warnings", "source"],
       properties: {
         id: { type: "string" },
         suites: { type: "array", items: { type: "string" } },

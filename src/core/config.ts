@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { InputAdapter, OutputAdapter } from "../adapters/types.js";
-import { validateRulesConfig, type RulesConfig } from "../rules/config.js";
+import { type RulesConfig, validateRulesConfig } from "../rules/config.js";
 
 export interface TestglassConfig {
   /** 解析対象の glob（ルートからの相対） */
@@ -39,9 +39,7 @@ export const CONFIG_FILES = ["testglass.config.mjs", "testglass.config.js", "tes
 
 /** 設定ファイルを読む。指定が無ければ dir から探し、見つからなければ空の設定を返す */
 export async function loadConfig(dir: string, explicit?: string): Promise<{ config: TestglassConfig; path?: string }> {
-  const path = explicit
-    ? resolve(explicit)
-    : CONFIG_FILES.map((f) => resolve(dir, f)).find((p) => existsSync(p));
+  const path = explicit ? resolve(explicit) : CONFIG_FILES.map((f) => resolve(dir, f)).find((p) => existsSync(p));
   if (!path) return { config: {} };
   if (!existsSync(path)) throw new Error(`設定ファイルが見つかりません: ${path}`);
 

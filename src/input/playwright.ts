@@ -2,7 +2,13 @@ import type { InputAdapter } from "../adapters/types.js";
 import { createJsAdapter, importsAny, JS_TEST_FILE } from "./js/adapter.js";
 import { playwrightActionSteps, playwrightStepTitles, statementSteps } from "./js/steps.js";
 
-export const PLAYWRIGHT_MODULES = ["@playwright/test", "playwright/test", "@playwright/experimental-ct-react", "@playwright/experimental-ct-vue", "@playwright/experimental-ct-svelte"] as const;
+export const PLAYWRIGHT_MODULES = [
+  "@playwright/test",
+  "playwright/test",
+  "@playwright/experimental-ct-react",
+  "@playwright/experimental-ct-vue",
+  "@playwright/experimental-ct-svelte",
+] as const;
 
 const PW_FIXTURE_PARAM = /\(\s*\{[^}]*\b(page|context|browser|browserName|request)\b[^}]*\}\s*(?:,[^)]*)?\)\s*=>/;
 

@@ -3,7 +3,7 @@ import { createTestCase } from "../../core/test-case.js";
 import type { TestFile } from "../../schema/types.js";
 import { extractAssertions, extractFixedWaits } from "./assertions.js";
 import { createSource, dedentedText, positionOf, tokenize } from "./ast.js";
-import { discoverTests, type DiscoveredTest, type JsProfile } from "./discover.js";
+import { type DiscoveredTest, discoverTests, type JsProfile } from "./discover.js";
 
 export interface JsAdapterDefinition {
   name: string;

@@ -22,15 +22,35 @@
 
   /** Playwright の操作名 → 表示 */
   var VERBS = {
-    goto: "開く", reload: "再読み込み", goBack: "戻る", goForward: "進む",
-    click: "クリック", dblclick: "ダブルクリック", tap: "タップ",
-    fill: "入力", type: "入力", pressSequentially: "入力", insertText: "入力",
-    press: "キー入力", down: "キー押下", up: "キー解放",
-    check: "チェック", uncheck: "チェック解除", setChecked: "チェック設定",
-    selectOption: "選択", selectText: "テキスト選択", hover: "ホバー",
-    focus: "フォーカス", blur: "フォーカス解除", clear: "クリア",
-    setInputFiles: "ファイル指定", dragTo: "ドラッグ", dragAndDrop: "ドラッグ",
-    move: "マウス移動", wheel: "スクロール", waitForTimeout: "待機",
+    goto: "開く",
+    reload: "再読み込み",
+    goBack: "戻る",
+    goForward: "進む",
+    click: "クリック",
+    dblclick: "ダブルクリック",
+    tap: "タップ",
+    fill: "入力",
+    type: "入力",
+    pressSequentially: "入力",
+    insertText: "入力",
+    press: "キー入力",
+    down: "キー押下",
+    up: "キー解放",
+    check: "チェック",
+    uncheck: "チェック解除",
+    setChecked: "チェック設定",
+    selectOption: "選択",
+    selectText: "テキスト選択",
+    hover: "ホバー",
+    focus: "フォーカス",
+    blur: "フォーカス解除",
+    clear: "クリア",
+    setInputFiles: "ファイル指定",
+    dragTo: "ドラッグ",
+    dragAndDrop: "ドラッグ",
+    move: "マウス移動",
+    wheel: "スクロール",
+    waitForTimeout: "待機",
   };
 
   // ---------------------------------------------------------------- 保存（失敗しても動く）
@@ -72,7 +92,8 @@
   // 固定の SVG（データは含まない）
   var THEME_ICON = {
     auto: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor" stroke="none"/></svg>',
-    light: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1"/></svg>',
+    light:
+      '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1"/></svg>',
     dark: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="M13.5 9.6A5.8 5.8 0 0 1 6.4 2.5a5.8 5.8 0 1 0 7.1 7.1z"/></svg>',
   };
   var themeBtn = document.getElementById("theme");
@@ -149,15 +170,18 @@
       return byRule[r.id];
     })
     .sort(function (a, b) {
-      return VERDICT_ORDER[byRule[a.id].verdict] - VERDICT_ORDER[byRule[b.id].verdict] || byRule[b.id].n - byRule[a.id].n;
+      return (
+        VERDICT_ORDER[byRule[a.id].verdict] - VERDICT_ORDER[byRule[b.id].verdict] || byRule[b.id].n - byRule[a.id].n
+      );
     });
   if (!found.length) chips.appendChild(el("p", { class: "chips-none", text: "指摘なし" }));
   found.forEach(function (r) {
     var c = byRule[r.id];
-    var chip = el("button", { type: "button", class: "chip", "aria-pressed": "false", title: r.description + "（" + r.id + "）" }, [
-      r.label,
-      el("span", { class: "n " + c.verdict, text: String(c.n) }),
-    ]);
+    var chip = el(
+      "button",
+      { type: "button", class: "chip", "aria-pressed": "false", title: r.description + "（" + r.id + "）" },
+      [r.label, el("span", { class: "n " + c.verdict, text: String(c.n) })],
+    );
     chip.addEventListener("click", function () {
       setRule(state.rule === r.id ? "" : r.id);
     });
@@ -177,7 +201,10 @@
   ].forEach(function (j) {
     var btn = el("button", { type: "button", "aria-pressed": "false" }, [
       j[1],
-      el("span", { class: "n" + (counts[j[0]] && (j[0] === "error" || j[0] === "warn") ? " " + j[0] : ""), text: String(counts[j[0]]) }),
+      el("span", {
+        class: "n" + (counts[j[0]] && (j[0] === "error" || j[0] === "warn") ? " " + j[0] : ""),
+        text: String(counts[j[0]]),
+      }),
     ]);
     btn.addEventListener("click", function () {
       state.verdict = j[0];
@@ -212,7 +239,10 @@
   function renderStep(text) {
     var depth = /^ */.exec(text)[0].length / 2;
     var body = text.trim();
-    var li = el("li", { class: depth ? "nested" : null, style: depth > 1 ? "margin-left:" + (depth - 1) * 1.2 + "em" : null });
+    var li = el("li", {
+      class: depth ? "nested" : null,
+      style: depth > 1 ? "margin-left:" + (depth - 1) * 1.2 + "em" : null,
+    });
     var mm = /^mock: (.*)$/.exec(body);
     if (mm) {
       li.appendChild(el("span", { class: "verb", text: "モック", title: "本物の代わりの部品を用意している" }));
@@ -221,7 +251,13 @@
     }
     mm = /^(?:(keyboard|mouse|touchscreen)\.)?([A-Za-z]+)(?: (.*))?$/.exec(body);
     if (mm && VERBS[mm[2]]) {
-      li.appendChild(el("span", { class: "verb" + (mm[2] === "waitForTimeout" ? " wait" : ""), text: VERBS[mm[2]], title: (mm[1] ? mm[1] + "." : "") + mm[2] }));
+      li.appendChild(
+        el("span", {
+          class: "verb" + (mm[2] === "waitForTimeout" ? " wait" : ""),
+          text: VERBS[mm[2]],
+          title: (mm[1] ? mm[1] + "." : "") + mm[2],
+        }),
+      );
       if (mm[3]) li.appendChild(el("code", { text: mm[3] }));
       return li;
     }
@@ -233,7 +269,13 @@
   function renderCase(entry, no) {
     var t = entry.test;
     var isTodo = t.modifiers.indexOf("todo") >= 0;
-    var btn = el("button", { type: "button", class: "no-btn", "aria-expanded": "false", "aria-label": no + " の詳細を開く", text: no });
+    var btn = el("button", {
+      type: "button",
+      class: "no-btn",
+      "aria-expanded": "false",
+      "aria-label": no + " の詳細を開く",
+      text: no,
+    });
 
     var mods = t.modifiers.length
       ? el(
@@ -246,7 +288,9 @@
         )
       : null;
 
-    var steps = t.steps.length ? el("ol", { class: "steps" }, t.steps.map(renderStep)) : el("span", { class: "nil", text: "—" });
+    var steps = t.steps.length
+      ? el("ol", { class: "steps" }, t.steps.map(renderStep))
+      : el("span", { class: "nil", text: "—" });
     var asserts = t.assertions.length
       ? el(
           "ul",
@@ -318,7 +362,10 @@
     t.source.split("\n").forEach(function (text, i) {
       var ln = t.location.line + i;
       var cls = "line" + (warnLines[ln] ? " is-" + warnLines[ln] : assertLines[ln] ? " is-assert" : "");
-      var node = el("div", { class: cls }, [el("span", { class: "ln", text: String(ln) }), el("span", { class: "code", text: text })]);
+      var node = el("div", { class: cls }, [
+        el("span", { class: "ln", text: String(ln) }),
+        el("span", { class: "code", text: text }),
+      ]);
       lineNodes[ln] = node;
       pre.appendChild(node);
     });
@@ -337,7 +384,10 @@
       var issues = el("div", { class: "issues" });
       t.warnings.forEach(function (w) {
         var meta = ruleMeta[w.rule];
-        var title = el("div", { class: "issue-title" }, [meta ? meta.label : w.rule, el("span", { class: "rule-id", text: w.rule })]);
+        var title = el("div", { class: "issue-title" }, [
+          meta ? meta.label : w.rule,
+          el("span", { class: "rule-id", text: w.rule }),
+        ]);
         if (w.line && lineNodes[w.line]) {
           var link = el("button", { type: "button", class: "link", text: w.line + " 行目 →" });
           link.addEventListener("click", function () {
@@ -347,9 +397,18 @@
         }
         var body = el("div", null, [title, el("p", { text: w.message })]);
         if (meta) {
-          body.appendChild(el("dl", null, [el("dt", { text: "理由" }), el("dd", { text: meta.why }), el("dt", { text: "対処" }), el("dd", { text: meta.fix })]));
+          body.appendChild(
+            el("dl", null, [
+              el("dt", { text: "理由" }),
+              el("dd", { text: meta.why }),
+              el("dt", { text: "対処" }),
+              el("dd", { text: meta.fix }),
+            ]),
+          );
         }
-        issues.appendChild(el("div", { class: "issue" }, [el("div", { class: "sev " + w.severity, text: VERDICT[w.severity] }), body]));
+        issues.appendChild(
+          el("div", { class: "issue" }, [el("div", { class: "sev " + w.severity, text: VERDICT[w.severity] }), body]),
+        );
       });
       children.push(el("section", null, [el("h3", { class: "label", text: "指摘" }), issues]));
     }
@@ -389,7 +448,12 @@
       if (e.verdict === "error") nErr++;
       if (e.verdict === "warn") nWarn++;
     });
-    var meta = el("span", { class: "meta" }, [file.framework, " · ", el("span", { class: "n", text: String(fileEntries.length) }), " tests"]);
+    var meta = el("span", { class: "meta" }, [
+      file.framework,
+      " · ",
+      el("span", { class: "n", text: String(fileEntries.length) }),
+      " tests",
+    ]);
     if (nErr) meta.appendChild(el("span", null, [" · ", el("span", { class: "error", text: "要修正 " + nErr })]));
     if (nWarn) meta.appendChild(el("span", null, [" · ", el("span", { class: "warn", text: "要確認 " + nWarn })]));
     var section = el("section", { class: "file" }, [
@@ -441,24 +505,24 @@
         rows.push(row);
       });
       var table = el("table", { class: "spec" }, [
-          el("colgroup", null, [
-            el("col", { class: "c-no" }),
-            el("col", { class: "c-title" }),
-            el("col", { class: "c-steps" }),
-            el("col", { class: "c-asserts" }),
-            el("col", { class: "c-judge" }),
+        el("colgroup", null, [
+          el("col", { class: "c-no" }),
+          el("col", { class: "c-title" }),
+          el("col", { class: "c-steps" }),
+          el("col", { class: "c-asserts" }),
+          el("col", { class: "c-judge" }),
+        ]),
+        el("thead", null, [
+          el("tr", null, [
+            el("th", { text: "項番" }),
+            el("th", { text: "テスト名" }),
+            el("th", { text: "手順" }),
+            el("th", { text: "期待結果" }),
+            el("th", { text: "判定" }),
           ]),
-          el("thead", null, [
-            el("tr", null, [
-              el("th", { text: "項番" }),
-              el("th", { text: "テスト名" }),
-              el("th", { text: "手順" }),
-              el("th", { text: "期待結果" }),
-              el("th", { text: "判定" }),
-            ]),
-          ]),
-          tbody,
-        ]);
+        ]),
+        tbody,
+      ]);
       section.appendChild(el("div", { class: "table-wrap" }, [table]));
     }
     sections.push({ node: section, rows: fileRows });
@@ -483,7 +547,13 @@
     var e = row.entry;
     if (state.verdict !== "all" && e.verdict !== state.verdict) return false;
     if (state.framework && e.file.framework !== state.framework) return false;
-    if (state.rule && !e.test.warnings.some(function (w) { return w.rule === state.rule; })) return false;
+    if (
+      state.rule &&
+      !e.test.warnings.some(function (w) {
+        return w.rule === state.rule;
+      })
+    )
+      return false;
     if (state.q) {
       var terms = state.q.toLowerCase().split(/\s+/).filter(Boolean);
       for (var i = 0; i < terms.length; i++) if (row.search.indexOf(terms[i]) < 0) return false;
@@ -502,12 +572,19 @@
     });
     rows.forEach(function (row) {
       var g = row.group;
-      if (g.header) g.header.hidden = !g.rows.some(function (r) { return r.visible; });
+      if (g.header)
+        g.header.hidden = !g.rows.some(function (r) {
+          return r.visible;
+        });
     });
     var filtering = state.verdict !== "all" || !!(state.q || state.framework || state.rule);
     sections.forEach(function (section) {
       // テストの無いファイルは、絞り込んでいないときだけ表示する
-      section.node.hidden = section.rows.length ? !section.rows.some(function (r) { return r.visible; }) : filtering;
+      section.node.hidden = section.rows.length
+        ? !section.rows.some(function (r) {
+            return r.visible;
+          })
+        : filtering;
     });
     noResults.hidden = shown > 0;
     judgeButtons.forEach(function (b) {
