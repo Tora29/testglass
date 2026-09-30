@@ -95,6 +95,13 @@ describe("testglass render / schema", () => {
     expect(existsSync(join(cwd, "b/spec.html"))).toBe(true);
   });
 
+  it("--format で html / md / csv をまとめて出力できる", async () => {
+    expect(await main(["--root", "project", "--format", "html,md,csv"], io)).toBe(0);
+    expect(existsSync(join(cwd, "testglass/spec.html"))).toBe(true);
+    expect(readFileSync(join(cwd, "testglass/spec.md"), "utf8")).toContain("正しいパスワードで成功する");
+    expect(readFileSync(join(cwd, "testglass/spec.csv"), "utf8")).toContain("正しいパスワードで成功する");
+  });
+
   it("schema は JSON Schema を出力する", async () => {
     expect(await main(["schema"], io)).toBe(0);
     expect(JSON.parse(out.join(""))).toEqual(JSON.parse(JSON.stringify(specJsonSchema)));
@@ -104,7 +111,7 @@ describe("testglass render / schema", () => {
 describe("エラー", () => {
   it("未知の出力形式・コマンド・オプションは終了コード 2", async () => {
     expect(await main(["--root", "project", "--format", "pdf"], io)).toBe(2);
-    expect(err.join("")).toContain("未知の出力形式です: pdf（使える形式: html）");
+    expect(err.join("")).toContain("未知の出力形式です: pdf（使える形式: html, md, csv）");
     expect(await main(["publish"], io)).toBe(2);
     expect(await main(["--nope"], io)).toBe(2);
   });

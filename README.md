@@ -1,6 +1,6 @@
 # testglass
 
-テストコードを**静的解析**して、人間がレビューするための「テスト仕様書」（単一ファイルの HTML）を生成します。
+テストコードを**静的解析**して、人間がレビューするための「テスト仕様書」（単一ファイルの HTML。Markdown・CSV でも出力できます）を生成します。
 
 AI にテストを書かせると、量が多く、実装まで全部は読み切れません。testglass は、せめてテストだけは人間がしっかりレビューできるように、次の観点を1画面にまとめます。
 
@@ -34,9 +34,12 @@ npx testglass
 # 段階ごとに実行する
 npx testglass collect --out testglass/spec.json      # ① 読む → ② JSON に保存（毎回上書き）
 npx testglass render testglass/spec.json --format html  # ③ JSON から HTML を生成
+
+# Markdown・CSV も出力する
+npx testglass --format html,md,csv
 ```
 
-生成された `testglass/spec.html` をブラウザで開きます。CSS・JS・データをすべて埋め込んだ単一ファイルなので、そのまま共有したり CI の成果物にしたりできます。
+生成された `testglass/spec.html` をブラウザで開きます。CSS・JS・データをすべて埋め込んだ単一ファイルなので、そのまま共有したり CI の成果物にしたりできます。Markdown（`spec.md`）と CSV（`spec.csv`）の中身は、[Markdown・CSV](#markdowncsv) を見てください。
 
 ### オプション
 
@@ -44,7 +47,7 @@ npx testglass render testglass/spec.json --format html  # ③ JSON から HTML �
 |---|---|
 | `--root <dir>` | 解析するルート（既定: カレントディレクトリ）。`spec.json` のパスはここからの相対になる |
 | `--out <file>` | `spec.json` の出力先（既定: `testglass/spec.json`） |
-| `--format <names>` | 出力形式。カンマ区切り（既定: `html`） |
+| `--format <names>` | 出力形式。`html` / `md` / `csv` をカンマ区切りで指定（既定: `html`） |
 | `--out-dir <dir>` | 成果物の出力先（既定: `spec.json` と同じディレクトリ） |
 | `--config <file>` | 設定ファイル（既定: ルートの `testglass.config.{mjs,js,json}`） |
 | `--fail-on <level>` | `error` / `warn` の警告が1件でもあれば終了コード 1 を返す（CI 用） |
@@ -55,13 +58,23 @@ npx testglass render testglass/spec.json --format html  # ③ JSON から HTML �
 
 テスト仕様書の罫線の表を、細く薄い線と落ち着いた配色で出力します。強弱は文字の濃さで付け、色は判定（要修正・要確認）と選択中の状態にだけ使います。
 
-- **上部の固定バー**：判定（すべて／要修正／要確認／問題なし）の切り替えと件数、検索、フレームワーク、表示テーマ
-- **見出し**：作成日時・件数と、指摘の種類ごとのチップ。チップをクリックすると、その指摘があるテストに絞り込む
+- **上部の固定バー**：判定（すべて／要修正／要確認／問題なし）の切り替えと件数、検索、表示テーマ
+- **見出し**：作成日時・件数、フレームワークのタブ（2種類以上あるとき）、判定ごとの指摘の一覧。指摘をクリックすると、その指摘があるテストに絞り込む。フレームワークを切り替えると、件数もそのフレームワークで数え直す
 - **本文**：ファイルごとに「項番／テスト名／手順／期待結果／判定」の表を並べる。describe は表の中の区切り行になる（狭い画面では1件ずつ縦に並べる）
   - 判定は、テストについた警告のうち最も重いもので決まる（`error` → 要修正、`warn` → 要確認、警告なし → 問題なし）
   - Playwright の操作は「入力」「クリック」などの日本語で表示する（`spec.json` の中身はコード寄りの表記のまま）
 - **行を開いた詳細**：指摘ごとに内容・理由・対処と該当行へのリンク、その下にソース（検証している行と指摘のある行に色がつく）
 - ライト／ダーク（既定は OS の設定に従う）。印刷時は固定バーを隠す。`spec.html#t-<テストID>` で特定のテストを開いた状態で表示できる
+
+### Markdown・CSV
+
+項番・判定・手順の表記（「入力」「クリック」など）は HTML と同じです。
+
+- **Markdown（`--format md` → `spec.md`）**：概要（件数と、判定ごとの指摘の表）のあと、ファイルごとに「項番／テスト名／手順／期待結果／判定」の表を並べる。describe ごとに見出しを立てて表を分ける。テスト名やコードに含まれる `|`・バッククォート・HTML・`$` はエスケープするので、GitHub などで表が崩れない
+- **CSV（`--format csv` → `spec.csv`）**：1行 = 1テスト。列は「項番, ファイル, フレームワーク, describe, テスト名, 修飾子, 手順, 期待結果, 判定, 指摘, 行」。表計算ソフトで絞り込み・並べ替えをする用途向け
+  - 手順・期待結果・指摘はセルの中で改行する。無いときは空のセルにする
+  - Excel でそのまま開けるよう、BOM 付き UTF-8・改行は CRLF（`outputOptions.csv.bom: false` で BOM を外せる）
+  - `=` `+` `-` `@` で始まる値は、数式として実行されないよう先頭に `'` を付ける
 
 ## 対応フレームワーク
 
@@ -141,8 +154,8 @@ npx testglass render testglass/spec.json --format html  # ③ JSON から HTML �
 | `frameworks` | アダプタ名 → そのアダプタで必ず解析するファイルの glob（自動判定より優先） |
 | `rules` | ルールID → `"off"` / `"warn"` / `"error"`。未知の ID はエラーになる |
 | `out` / `outDir` | `spec.json` と成果物の出力先（ルートからの相対） |
-| `format` | 出力形式 |
-| `outputOptions` | 出力アダプタごとのオプション（HTML は `title` と `fileName`） |
+| `format` | 出力形式（`html` / `md` / `csv`） |
+| `outputOptions` | 出力形式ごとのオプション（`html` と `md` は `title` と `fileName`、`csv` は `fileName` と `bom`） |
 | `inputAdapters` / `outputAdapters` | 独自のアダプタ（JS の設定ファイルでのみ指定できる） |
 
 ## 中間 JSON（spec.json）
@@ -204,38 +217,33 @@ export interface InputAdapter {
 }
 
 export interface OutputAdapter<Options = unknown> {
-  name: string;                                      // "html" | "markdown" | ...
+  name: string;                                      // "html" | "md" | "csv" | ...
   render(spec: SpecJson, options?: Options): { path: string; content: string }[];
 }
 ```
 
 `match` がパスに加えてソースも受け取るのは、Vitest と Playwright がどちらも `*.spec.ts` を使い、import 元を見ないと区別できないためです。
 
-### 出力アダプタの例（Markdown）
+### 出力アダプタの例（要修正のテストの一覧）
+
+項番・判定・手順の表記を組み込みの出力と揃えたいときは、`reportCases()`（項番と判定を付けたテスト）、`stepLines()`（番号付きの手順）、`ruleLabel()`（指摘の表示名）などを使います。
 
 ```js
 // testglass.config.mjs
-import { defineConfig } from "testglass";
+import { defineConfig, reportCases, ruleLabel } from "testglass";
 
-const markdown = {
-  name: "markdown",
+const todo = {
+  name: "todo",
   render(spec) {
-    const lines = ["# テスト仕様書", ""];
-    for (const file of spec.files) {
-      lines.push(`## ${file.path}`, "", "| テスト | 手順 | 期待結果 | 警告 |", "|---|---|---|---|");
-      for (const t of file.tests) {
-        const cell = (xs) => xs.join("<br>").replaceAll("|", "\\|");
-        lines.push(
-          `| ${[...t.suites, t.title].join(" › ")} | ${cell(t.steps)} | ${cell(t.assertions.map((a) => a.text))} | ${cell(t.warnings.map((w) => w.rule))} |`,
-        );
-      }
-      lines.push("");
-    }
-    return [{ path: "spec.md", content: lines.join("\n") }];
+    const lines = reportCases(spec)
+      .flat()
+      .filter((c) => c.verdict === "error")
+      .map((c) => `- [ ] ${c.no} ${c.test.title}（${c.test.warnings.map((w) => ruleLabel(w.rule)).join("、")}）`);
+    return [{ path: "todo.md", content: `${lines.join("\n")}\n` }];
   },
 };
 
-export default defineConfig({ format: ["html", "markdown"], outputAdapters: [markdown] });
+export default defineConfig({ format: ["html", "todo"], outputAdapters: [todo] });
 ```
 
 ### 入力アダプタの作り方
@@ -299,10 +307,12 @@ export const bunAdapter = createJsAdapter({
 ## プログラムから使う
 
 ```ts
-import { collect, htmlAdapter } from "testglass";
+import { collect, csvAdapter, htmlAdapter, markdownAdapter } from "testglass";
 
 const { spec, unmatched } = await collect({ root: process.cwd(), rules: { "fixed-wait": "error" } });
 const [html] = htmlAdapter.render(spec, { title: "テスト仕様書" });
+const [md] = markdownAdapter.render(spec);
+const [csv] = csvAdapter.render(spec, { bom: false });
 ```
 
 ファイルシステムを使わずに解析したい場合は、`buildSpec([{ path, source }], options)` を使います。
@@ -319,8 +329,10 @@ const [html] = htmlAdapter.render(spec, { title: "テスト仕様書" });
 npm install
 npm test          # Vitest（開発には Node 22.12 以上が必要。ライブラリ自体は Node 20 で動く）
 npm run typecheck
+npm run lint      # Biome（整形の差分は npm run format で直す）
 npm run build
 npm run demo      # test/fixtures から demo/spec.json と demo/spec.html を生成
+npm run verify    # lint・型チェック・テスト・ビルド・デモ生成をまとめて実行
 ```
 
 `test/fixtures/` には「良いテスト」と「警告が出るべきテスト」のサンプルがあり、`test/rules.test.ts` で各テストに出るべき警告を表にして検証しています。

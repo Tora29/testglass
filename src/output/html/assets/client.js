@@ -9,48 +9,9 @@
     ruleMeta[r.id] = r;
   });
 
-  /** 判定：テストについた警告のうち最も重いもの */
-  var VERDICT = { error: "要修正", warn: "要確認", ok: "問題なし" };
-
-  var MODIFIER = {
-    skip: { label: "スキップ", title: ".skip / .fixme：実行されない" },
-    only: { label: "only", title: ".only：このテストだけが実行される" },
-    todo: { label: "未実装", title: ".todo：名前だけで中身がない" },
-    each: { label: "データ駆動", title: "it.each など：データの数だけ実行時に生成される" },
-  };
-
-  /** Playwright の操作名 → 表示 */
-  var VERBS = {
-    goto: "開く",
-    reload: "再読み込み",
-    goBack: "戻る",
-    goForward: "進む",
-    click: "クリック",
-    dblclick: "ダブルクリック",
-    tap: "タップ",
-    fill: "入力",
-    type: "入力",
-    pressSequentially: "入力",
-    insertText: "入力",
-    press: "キー入力",
-    down: "キー押下",
-    up: "キー解放",
-    check: "チェック",
-    uncheck: "チェック解除",
-    setChecked: "チェック設定",
-    selectOption: "選択",
-    selectText: "テキスト選択",
-    hover: "ホバー",
-    focus: "フォーカス",
-    blur: "フォーカス解除",
-    clear: "クリア",
-    setInputFiles: "ファイル指定",
-    dragTo: "ドラッグ",
-    dragAndDrop: "ドラッグ",
-    move: "マウス移動",
-    wheel: "スクロール",
-    waitForTimeout: "待機",
-  };
+  // 表示ラベル・項番・判定・手順の表記は src/output/report.ts で決め、埋め込みデータで受け取る
+  var VERDICT = payload.labels.verdicts;
+  var MODIFIER = payload.labels.modifiers;
 
   // ---------------------------------------------------------------- 保存（失敗しても動く）
   function load(key) {
@@ -112,14 +73,6 @@
   });
 
   // ---------------------------------------------------------------- 集計
-  function verdictOf(test) {
-    var v = "ok";
-    test.warnings.forEach(function (w) {
-      if (w.severity === "error") v = "error";
-      else if (v === "ok") v = "warn";
-    });
-    return v;
-  }
   function uniqueRules(warnings) {
     var seen = {};
     return warnings.filter(function (w) {
@@ -130,9 +83,10 @@
   }
 
   var entries = [];
-  spec.files.forEach(function (file) {
-    file.tests.forEach(function (test) {
-      entries.push({ file: file, test: test, verdict: verdictOf(test) });
+  spec.files.forEach(function (file, fi) {
+    file.tests.forEach(function (test, ti) {
+      var c = payload.cases[fi][ti];
+      entries.push({ file: file, test: test, no: c.no, verdict: c.verdict, steps: c.steps });
     });
   });
   /** 判定ごと・指摘の種類ごとの件数。framework を指定するとそのフレームワークだけを数える */
@@ -294,37 +248,21 @@
   var rows = [];
   var sections = [];
 
-  function renderStep(text) {
-    var depth = /^ */.exec(text)[0].length / 2;
-    var body = text.trim();
+  function renderStep(view) {
     var li = el("li", {
-      class: depth ? "nested" : null,
-      style: depth > 1 ? "margin-left:" + (depth - 1) * 1.2 + "em" : null,
+      class: view.depth ? "nested" : null,
+      style: view.depth > 1 ? "margin-left:" + (view.depth - 1) * 1.2 + "em" : null,
     });
-    var mm = /^mock: (.*)$/.exec(body);
-    if (mm) {
-      li.appendChild(el("span", { class: "verb", text: "モック", title: "本物の代わりの部品を用意している" }));
-      li.appendChild(el("code", { text: mm[1] }));
-      return li;
-    }
-    mm = /^(?:(keyboard|mouse|touchscreen)\.)?([A-Za-z]+)(?: (.*))?$/.exec(body);
-    if (mm && VERBS[mm[2]]) {
+    if (view.verb)
       li.appendChild(
-        el("span", {
-          class: "verb" + (mm[2] === "waitForTimeout" ? " wait" : ""),
-          text: VERBS[mm[2]],
-          title: (mm[1] ? mm[1] + "." : "") + mm[2],
-        }),
+        el("span", { class: "verb" + (view.wait ? " wait" : ""), text: view.verb, title: view.verbTitle }),
       );
-      if (mm[3]) li.appendChild(el("code", { text: mm[3] }));
-      return li;
-    }
-    // コードそのままの手順は等幅、test.step のタイトルなどの文章はそのまま
-    li.appendChild(/[();={}]|=>/.test(body) ? el("code", { text: body }) : document.createTextNode(body));
+    if (view.body) li.appendChild(view.code ? el("code", { text: view.body }) : document.createTextNode(view.body));
     return li;
   }
 
-  function renderCase(entry, no) {
+  function renderCase(entry) {
+    var no = entry.no;
     var t = entry.test;
     var isTodo = t.modifiers.indexOf("todo") >= 0;
     var btn = el("button", {
@@ -347,7 +285,7 @@
       : null;
 
     var steps = t.steps.length
-      ? el("ol", { class: "steps" }, t.steps.map(renderStep))
+      ? el("ol", { class: "steps" }, entry.steps.map(renderStep))
       : el("span", { class: "nil", text: "—" });
     var asserts = t.assertions.length
       ? el(
@@ -497,9 +435,8 @@
     (byFile[e.file.path] = byFile[e.file.path] || []).push(e);
   });
 
-  spec.files.forEach(function (file, fi) {
+  spec.files.forEach(function (file) {
     var fileEntries = byFile[file.path] || [];
-    var fileNo = fi + 1;
     var nErr = 0;
     var nWarn = 0;
     fileEntries.forEach(function (e) {
@@ -525,7 +462,7 @@
       var tbody = el("tbody");
       var prevKey = null;
       var group = null;
-      fileEntries.forEach(function (entry, ti) {
+      fileEntries.forEach(function (entry) {
         var t = entry.test;
         var key = JSON.stringify(t.suites);
         if (key !== prevKey) {
@@ -542,7 +479,7 @@
           }
           group = { header: header, rows: [] };
         }
-        var c = renderCase(entry, fileNo + "-" + (ti + 1));
+        var c = renderCase(entry);
         tbody.appendChild(c.tr);
         tbody.appendChild(c.detail);
         var search = [file.path, t.suites.join(" "), t.title]

@@ -27,7 +27,7 @@ const HELP = `testglass — テストコードからレビュー用のテスト�
 オプション:
   --root <dir>        解析するルートディレクトリ（既定: カレントディレクトリ）
   --out <file>        spec.json の出力先（既定: ${DEFAULT_OUT}）
-  --format <names>    出力形式（カンマ区切り。既定: html）
+  --format <names>    出力形式（html / md / csv をカンマ区切り。既定: html）
   --out-dir <dir>     成果物の出力先（既定: spec.json と同じディレクトリ）
   --config <file>     設定ファイル（既定: ルートの testglass.config.{mjs,js,json}）
   --fail-on <level>   error / warn の警告が1件でもあれば終了コード 1 を返す

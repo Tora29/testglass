@@ -23,8 +23,25 @@ export type { DiscoveredTest, JsProfile } from "./input/js/discover.js";
 export { playwrightActionSteps, playwrightStepTitles, statementSteps } from "./input/js/steps.js";
 export { playwrightAdapter } from "./input/playwright.js";
 export { vitestAdapter } from "./input/vitest.js";
+export { type CsvOptions, csvAdapter } from "./output/csv.js";
 export { type HtmlOptions, htmlAdapter } from "./output/html/index.js";
 export { builtinOutputAdapters } from "./output/index.js";
+export { type MarkdownOptions, markdownAdapter } from "./output/markdown.js";
+// 出力アダプタを作るための部品（項番・判定・手順の表記を HTML と揃える）
+export {
+  describeStep,
+  MODIFIER_LABELS,
+  type ReportCase,
+  reportCases,
+  ruleLabel,
+  STEP_VERBS,
+  type StepView,
+  stepLines,
+  uniqueRules,
+  VERDICT_LABELS,
+  type Verdict,
+  verdictOf,
+} from "./output/report.js";
 // ルール
 export { RULE_IDS, RULES, type RuleId, type RuleMeta } from "./rules/catalog.js";
 export { applyRulesConfig, type RuleSetting, type RulesConfig, validateRulesConfig } from "./rules/config.js";
