@@ -37,7 +37,8 @@ scope は変更した場所にする。
 | `cli` | CLI（`src/cli/`） |
 | `schema` | `spec.json` の形式（`src/schema/`） |
 | `readme` | README |
-| `repo` | リポジトリ全体の設定・ルール（`.claude/`・Biome など） |
+| `repo` | リポジトリ全体の設定・ルール（`.claude/`・`.github/`・Biome など） |
+| `deps` | 依存関係の更新（Dependabot が `chore(deps)` / `ci(deps)` として付ける） |
 
 ## コミットメッセージ
 
