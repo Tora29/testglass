@@ -41,18 +41,27 @@ npx testglass --format html,md,csv
 
 生成された `testglass/spec.html` をブラウザで開きます。CSS・JS・データをすべて埋め込んだ単一ファイルなので、そのまま共有したり CI の成果物にしたりできます。Markdown（`spec.md`）と CSV（`spec.csv`）の中身は、[Markdown・CSV](#markdowncsv) を見てください。
 
+### コマンド
+
+| コマンド | 説明 |
+|---|---|
+| `testglass` | テストを読んで `spec.json` を書き、成果物を生成する（`collect` と `render` をまとめて実行） |
+| `testglass collect` | テストを読んで `spec.json` を書く（毎回上書き）。成果物は生成しない |
+| `testglass render <spec.json>` | 指定した `spec.json` から成果物を生成する。テストは読まない |
+| `testglass schema` | `spec.json` の JSON Schema を出力する（`--out` を付けるとファイルに保存。パッケージの `testglass/schema.json` にも同じものが入っています） |
+
 ### オプション
 
-| オプション | 説明 |
-|---|---|
-| `--root <dir>` | 解析するルート（既定: カレントディレクトリ）。`spec.json` のパスはここからの相対になる |
-| `--out <file>` | `spec.json` の出力先（既定: `testglass/spec.json`） |
-| `--format <names>` | 出力形式。`html` / `md` / `csv` をカンマ区切りで指定（既定: `html`） |
-| `--out-dir <dir>` | 成果物の出力先（既定: `spec.json` と同じディレクトリ） |
-| `--config <file>` | 設定ファイル（既定: ルートの `testglass.config.{mjs,js,json}`） |
-| `--fail-on <level>` | `error` / `warn` の警告が1件でもあれば終了コード 1 を返す（CI 用） |
+「コマンド」の列にないコマンドでは、そのオプションは無視されます。
 
-`npx testglass schema` で、`spec.json` の JSON Schema を出力します（パッケージの `testglass/schema.json` にも同じものが入っています）。
+| オプション | 説明 | コマンド |
+|---|---|---|
+| `--root <dir>` | 解析するディレクトリ（既定: カレントディレクトリ）。`spec.json` に書くテストファイルのパスは、ここからの相対パスになる | `testglass`・`collect` |
+| `--out <file>` | `spec.json`（`schema` では JSON Schema）の出力先。既定は `testglass/spec.json` で、`--root` ではなくコマンドを実行したディレクトリからの相対パス | `testglass`・`collect`・`schema` |
+| `--format <names>` | 出力形式。`html` / `md` / `csv` をカンマ区切りで指定（既定: `html`） | `testglass`・`render` |
+| `--out-dir <dir>` | 成果物の出力先（既定: `spec.json` と同じディレクトリ） | `testglass`・`render` |
+| `--config <file>` | 設定ファイル。省略すると `testglass.config.{mjs,js,json}` を、`testglass`・`collect` では `--root` から、`render` ではカレントディレクトリから探す | `testglass`・`collect`・`render` |
+| `--fail-on <level>` | `error` / `warn` の警告が1件でもあれば終了コード 1 を返す（CI 用）。`warn` を指定すると、`error` があるときも 1 を返す | `testglass`・`collect`・`render` |
 
 ### HTML の構成
 
