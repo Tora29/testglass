@@ -74,6 +74,8 @@ npx testglass --format html,md,csv
 | `--config <file>` | 設定ファイル。省略すると `testglass.config.{mjs,js,json}` を、`testglass`・`collect` では `--root` から、`render` ではカレントディレクトリから探す | `testglass`・`collect`・`render` |
 | `--fail-on <level>` | `error` / `warn` の警告が1件でもあれば終了コード 1 を返す（CI 用）。`warn` を指定すると、`error` があるときも 1 を返す | `testglass`・`collect`・`render` |
 
+言語は、OS や環境変数（`LANG` など）のロケールからは自動で決めません。CI のランナーは英語のロケールのことが多く、手元と CI で成果物の言語が変わってしまうためです。言語を変えるときは、`--lang` か設定ファイルの `lang` で指定します。
+
 ### HTML の構成
 
 テスト仕様書の罫線の表を、細く薄い線と落ち着いた配色で出力します。強弱は文字の濃さで付け、色は判定（要修正・要確認）と選択中の状態にだけ使います。
@@ -423,7 +425,7 @@ npx testglass render testglass/spec.json --format html --lang en  # ③ generate
 npx testglass --format html,md,csv --lang en
 ```
 
-The report is in Japanese by default. Add `--lang en` (or set `"lang": "en"` in the [configuration](#configuration)) to get it in English.
+The report is in Japanese by default. Add `--lang en` (or set `"lang": "en"` in the [configuration](#configuration)) to get it in English. The language is not detected from your OS or environment locale (such as `LANG`), because CI runners usually have an English locale, and the outputs would then differ between your machine and CI.
 
 Open the generated `testglass/spec.html` in a browser. It is a single file with all CSS, JS, and data embedded, so you can share it as is or keep it as a CI artifact. For the contents of the Markdown (`spec.md`) and CSV (`spec.csv`) outputs, see [Markdown and CSV](#markdown-and-csv).
 
