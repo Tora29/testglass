@@ -12,6 +12,14 @@
   // 表示ラベル・項番・判定・手順の表記は src/output/report.ts で決め、埋め込みデータで受け取る
   var VERDICT = payload.labels.verdicts;
   var MODIFIER = payload.labels.modifiers;
+  var UI = payload.labels.ui;
+
+  /** 文言の {name} を置き換える */
+  function fmt(template, values) {
+    return template.replace(/\{(\w+)\}/g, function (all, name) {
+      return Object.hasOwn(values, name) ? String(values[name]) : all;
+    });
+  }
 
   // ---------------------------------------------------------------- 保存（失敗しても動く）
   function load(key) {
@@ -48,7 +56,7 @@
 
   // ---------------------------------------------------------------- 表示テーマ
   var THEMES = ["auto", "light", "dark"];
-  var THEME_LABEL = { auto: "表示: OS の設定に従う", light: "表示: ライト", dark: "表示: ダーク" };
+  var THEME_LABEL = UI.themes;
   // 固定の SVG（データは含まない）
   var THEME_ICON = {
     auto: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="6"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor" stroke="none"/></svg>',
@@ -114,7 +122,7 @@
     m ? m[1] + "." + m[2] + "." + m[3] + " " + m[4] + ":" + m[5] : spec.generatedAt,
     spec.files.length + " files",
     total.all + " tests",
-    "静的解析（テストは実行していない）",
+    payload.labels.staticAnalysis,
   ].forEach(function (text, i) {
     if (i) lead.appendChild(el("span", { class: "sep", text: "·" }));
     lead.appendChild(document.createTextNode(text));
@@ -135,7 +143,7 @@
       .sort(function (a, b) {
         return byRule[b.id].n - byRule[a.id].n;
       });
-    if (!found.length) chips.appendChild(el("p", { class: "chips-none", text: "指摘なし" }));
+    if (!found.length) chips.appendChild(el("p", { class: "chips-none", text: UI.noIssues }));
     ["error", "warn"].forEach(function (verdict) {
       var inRow = found.filter(function (r) {
         return byRule[r.id].verdict === verdict;
@@ -145,7 +153,12 @@
       inRow.forEach(function (r) {
         var chip = el(
           "button",
-          { type: "button", class: "chip", "aria-pressed": "false", title: r.description + "（" + r.id + "）" },
+          {
+            type: "button",
+            class: "chip",
+            "aria-pressed": "false",
+            title: fmt(UI.ruleChipTitle, { description: r.description, id: r.id }),
+          },
           [el("span", { class: "n", text: String(byRule[r.id].n) }), r.label],
         );
         chip.addEventListener("click", function () {
@@ -168,10 +181,10 @@
   var judge = document.getElementById("judge");
   var judgeButtons = [];
   [
-    ["all", "すべて"],
-    ["error", "要修正"],
-    ["warn", "要確認"],
-    ["ok", "問題なし"],
+    ["all", UI.all],
+    ["error", VERDICT.error],
+    ["warn", VERDICT.warn],
+    ["ok", VERDICT.ok],
   ].forEach(function (j) {
     var n = el("span", { class: "n" });
     var btn = el("button", { type: "button", "aria-pressed": "false" }, [j[1], n]);
@@ -217,7 +230,7 @@
   var frameworks = Object.keys(byFramework).sort();
   if (frameworks.length >= 2) {
     fwNav.hidden = false;
-    [["", "すべて", total.all]]
+    [["", UI.all, total.all]]
       .concat(
         frameworks.map(function (fw) {
           return [fw, fw, byFramework[fw]];
@@ -269,7 +282,7 @@
       type: "button",
       class: "no-btn",
       "aria-expanded": "false",
-      "aria-label": no + " の詳細を開く",
+      "aria-label": fmt(UI.openDetails, { no: no }),
       text: no,
     });
 
@@ -295,9 +308,12 @@
             return el("li", null, [el("code", { text: a.text })]);
           }),
         )
-      : el("span", { class: isTodo ? "nil" : "nil bad", text: isTodo ? "未実装" : "なし" });
+      : el("span", {
+          class: isTodo ? "nil" : "nil bad",
+          text: isTodo ? payload.labels.noAssertions.todo : payload.labels.noAssertions.none,
+        });
 
-    var judgeCell = el("td", { class: "judge-cell", "data-label": "判定" }, [
+    var judgeCell = el("td", { class: "judge-cell", "data-label": UI.columns.verdict }, [
       el("div", { class: "verdict " + entry.verdict, text: VERDICT[entry.verdict] }),
     ]);
     if (t.warnings.length) {
@@ -315,9 +331,9 @@
 
     var tr = el("tr", { class: "case v-" + entry.verdict, id: "t-" + t.id }, [
       el("td", { class: "no" }, [btn]),
-      el("td", { "data-label": "テスト名" }, [mods, el("span", { class: "title", text: t.title })]),
-      el("td", { "data-label": "手順" }, [steps]),
-      el("td", { "data-label": "期待結果" }, [asserts]),
+      el("td", { "data-label": UI.columns.title }, [mods, el("span", { class: "title", text: t.title })]),
+      el("td", { "data-label": UI.columns.steps }, [steps]),
+      el("td", { "data-label": UI.columns.expected }, [asserts]),
       judgeCell,
     ]);
     var detail = el("tr", { class: "detail", hidden: true });
@@ -385,7 +401,7 @@
           el("span", { class: "rule-id", text: w.rule }),
         ]);
         if (w.line && lineNodes[w.line]) {
-          var link = el("button", { type: "button", class: "link", text: w.line + " 行目 →" });
+          var link = el("button", { type: "button", class: "link", text: fmt(UI.jumpToLine, { line: w.line }) });
           link.addEventListener("click", function () {
             jumpTo(w.line);
           });
@@ -395,9 +411,9 @@
         if (meta) {
           body.appendChild(
             el("dl", null, [
-              el("dt", { text: "理由" }),
+              el("dt", { text: UI.why }),
               el("dd", { text: meta.why }),
-              el("dt", { text: "対処" }),
+              el("dt", { text: UI.fix }),
               el("dd", { text: meta.fix }),
             ]),
           );
@@ -406,17 +422,17 @@
           el("div", { class: "issue" }, [el("div", { class: "sev " + w.severity, text: VERDICT[w.severity] }), body]),
         );
       });
-      children.push(el("section", null, [el("h3", { class: "label", text: "指摘" }), issues]));
+      children.push(el("section", null, [el("h3", { class: "label", text: UI.issues }), issues]));
     }
 
     children.push(
       el("section", null, [
         el("div", { class: "source-head" }, [
-          el("h3", { class: "label", text: "ソース" }),
+          el("h3", { class: "label", text: UI.source }),
           el("span", { class: "loc mono", text: entry.file.path + ":" + t.location.line }),
           el("span", { class: "legend" }, [
-            el("span", null, [el("i", { class: "l-assert" }), "検証している行"]),
-            el("span", null, [el("i", { class: "l-warn" }), "指摘のある行"]),
+            el("span", null, [el("i", { class: "l-assert" }), UI.assertLine]),
+            el("span", null, [el("i", { class: "l-warn" }), UI.warnLine]),
           ]),
         ]),
         pre,
@@ -449,15 +465,17 @@
       el("span", { class: "n", text: String(fileEntries.length) }),
       " tests",
     ]);
-    if (nErr) meta.appendChild(el("span", null, [" · ", el("span", { class: "error", text: "要修正 " + nErr })]));
-    if (nWarn) meta.appendChild(el("span", null, [" · ", el("span", { class: "warn", text: "要確認 " + nWarn })]));
+    if (nErr)
+      meta.appendChild(el("span", null, [" · ", el("span", { class: "error", text: VERDICT.error + " " + nErr })]));
+    if (nWarn)
+      meta.appendChild(el("span", null, [" · ", el("span", { class: "warn", text: VERDICT.warn + " " + nWarn })]));
     var section = el("section", { class: "file" }, [
       el("div", { class: "file-head" }, [el("h2", { class: "mono", text: file.path }), meta]),
     ]);
 
     var fileRows = [];
     if (!fileEntries.length) {
-      section.appendChild(el("p", { class: "file-empty", text: "テストが見つからない" }));
+      section.appendChild(el("p", { class: "file-empty", text: UI.noTests }));
     } else {
       var tbody = el("tbody");
       var prevKey = null;
@@ -509,11 +527,11 @@
         ]),
         el("thead", null, [
           el("tr", null, [
-            el("th", { text: "項番" }),
-            el("th", { text: "テスト名" }),
-            el("th", { text: "手順" }),
-            el("th", { text: "期待結果" }),
-            el("th", { text: "判定" }),
+            el("th", { text: UI.columns.no }),
+            el("th", { text: UI.columns.title }),
+            el("th", { text: UI.columns.steps }),
+            el("th", { text: UI.columns.expected }),
+            el("th", { text: UI.columns.verdict }),
           ]),
         ]),
         tbody,
@@ -524,7 +542,7 @@
     results.appendChild(section);
   });
 
-  var resetBtn = el("button", { type: "button", class: "link", text: "絞り込みを解除" });
+  var resetBtn = el("button", { type: "button", class: "link", text: UI.clearFilters });
   resetBtn.addEventListener("click", function () {
     state.verdict = "all";
     state.q = "";
@@ -532,7 +550,7 @@
     state.framework = "";
     setRule("");
   });
-  var noResults = el("p", { class: "no-results", hidden: true }, ["該当するテストはない", resetBtn]);
+  var noResults = el("p", { class: "no-results", hidden: true }, [UI.noResults, resetBtn]);
   results.appendChild(noResults);
 
   // ---------------------------------------------------------------- 絞り込み

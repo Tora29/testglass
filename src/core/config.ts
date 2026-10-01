@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { InputAdapter, OutputAdapter } from "../adapters/types.js";
+import { isLang, LANGS, type Lang } from "../i18n/index.js";
 import { type RulesConfig, validateRulesConfig } from "../rules/config.js";
 
 export interface TestglassConfig {
@@ -22,6 +23,8 @@ export interface TestglassConfig {
   outDir?: string;
   /** 出力形式（既定: ["html"]） */
   format?: string[];
+  /** レポートの表示の言語（既定: "ja"）。すべての出力アダプタのオプションに lang として渡す */
+  lang?: Lang;
   /** 出力アダプタごとのオプション（キーは出力アダプタの name） */
   outputOptions?: Record<string, unknown>;
   /** 追加の入力アダプタ（組み込みより先に判定される）。JS の設定ファイルでのみ指定できる */
@@ -56,8 +59,15 @@ export async function loadConfig(dir: string, explicit?: string): Promise<{ conf
   const config = raw as TestglassConfig;
   try {
     validateRulesConfig(config.rules);
+    validateLang(config.lang, "lang");
   } catch (e) {
     throw new Error(`${path}: ${(e as Error).message}`);
   }
   return { config, path };
+}
+
+/** 言語の指定を確かめる（未指定は許す） */
+export function validateLang(value: unknown, name: string): Lang | undefined {
+  if (value === undefined || isLang(value)) return value;
+  throw new Error(`${name} には ${LANGS.join(" / ")} のいずれかを指定してください（指定値: ${JSON.stringify(value)}）`);
 }

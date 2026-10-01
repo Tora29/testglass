@@ -1,8 +1,8 @@
 import type { OutputAdapter } from "../adapters/types.js";
+import { DEFAULT_LANG, getMessages, type Lang, type Messages } from "../i18n/index.js";
 import type { SpecJson } from "../schema/types.js";
 import {
   formatGeneratedAt,
-  MODIFIER_LABELS,
   missingAssertionsLabel,
   type ReportCase,
   reportCases,
@@ -12,21 +12,25 @@ import {
   stepLines,
   tally,
   uniqueRules,
-  VERDICT_LABELS,
 } from "./report.js";
 
 export interface MarkdownOptions {
-  /** 見出しのタイトル（既定: "テスト仕様書"） */
+  /** 見出しのタイトル（既定: "テスト仕様書" / "Test specification"） */
   title?: string;
   /** 出力ファイル名（既定: "spec.md"） */
   fileName?: string;
+  /** 表示の言語（既定: "ja"） */
+  lang?: Lang;
 }
 
 /** HTML と同じ「項番／テスト名／手順／期待結果／判定」の表を、ファイルごとに並べた Markdown を出力する */
 export const markdownAdapter: OutputAdapter<MarkdownOptions> = {
   name: "md",
   render(spec: SpecJson, options: MarkdownOptions = {}) {
-    const title = options.title ?? "テスト仕様書";
+    const lang = options.lang ?? DEFAULT_LANG;
+    const t = getMessages(lang);
+    const verdicts = t.verdicts;
+    const title = options.title ?? t.title;
     const cases = reportCases(spec);
     const all = cases.flat();
     const { counts, byRule } = tally(all);
@@ -34,23 +38,17 @@ export const markdownAdapter: OutputAdapter<MarkdownOptions> = {
 
     lines.push(`# ${text(title)}`, "");
     lines.push(
-      [
-        formatGeneratedAt(spec.generatedAt),
-        `${spec.files.length} files`,
-        `${all.length} tests`,
-        "静的解析（テストは実行していない）",
-      ].join(" · "),
+      [formatGeneratedAt(spec.generatedAt), `${spec.files.length} files`, `${all.length} tests`, t.staticAnalysis].join(
+        " · ",
+      ),
       "",
     );
-    lines.push(
-      `${VERDICT_LABELS.error} ${counts.error} · ${VERDICT_LABELS.warn} ${counts.warn} · ${VERDICT_LABELS.ok} ${counts.ok}`,
-      "",
-    );
+    lines.push(`${verdicts.error} ${counts.error} · ${verdicts.warn} ${counts.warn} · ${verdicts.ok} ${counts.ok}`, "");
 
     const rules = rulesByVerdict(byRule);
     if (rules.length) {
-      lines.push("## 指摘", "", "| 判定 | 指摘 | 件数 |", "| --- | --- | ---: |");
-      for (const r of rules) lines.push(row([VERDICT_LABELS[r.verdict], text(ruleLabel(r.rule)), String(r.n)]));
+      lines.push(`## ${t.markdown.issues}`, "", row(t.markdown.issuesHeader), "| --- | --- | ---: |");
+      for (const r of rules) lines.push(row([verdicts[r.verdict], text(ruleLabel(r.rule, lang)), String(r.n)]));
       lines.push("");
     }
 
@@ -59,19 +57,19 @@ export const markdownAdapter: OutputAdapter<MarkdownOptions> = {
       const meta = [file.framework, `${fileCases.length} tests`];
       const nErr = fileCases.filter((c) => c.verdict === "error").length;
       const nWarn = fileCases.filter((c) => c.verdict === "warn").length;
-      if (nErr) meta.push(`${VERDICT_LABELS.error} ${nErr}`);
-      if (nWarn) meta.push(`${VERDICT_LABELS.warn} ${nWarn}`);
+      if (nErr) meta.push(`${verdicts.error} ${nErr}`);
+      if (nWarn) meta.push(`${verdicts.warn} ${nWarn}`);
       lines.push(`## ${code(file.path)}`, "", meta.join(" · "), "");
       if (!fileCases.length) {
-        lines.push("テストが見つからない", "");
+        lines.push(t.markdown.noTests, "");
         return;
       }
       // describe が変わるところで見出しを立て、表を分ける（HTML の区切り行にあたる）
       groupBySuites(fileCases).forEach((group, gi) => {
         if (group.suites.length) lines.push(`### ${group.suites.map(text).join(" / ")}`, "");
-        else if (gi > 0) lines.push("### （describe の外）", "");
-        lines.push("| 項番 | テスト名 | 手順 | 期待結果 | 判定 |", "| --- | --- | --- | --- | --- |");
-        for (const c of group.cases) lines.push(caseRow(c));
+        else if (gi > 0) lines.push(`### ${t.markdown.outsideDescribe}`, "");
+        lines.push(row(t.markdown.caseHeader), "| --- | --- | --- | --- | --- |");
+        for (const c of group.cases) lines.push(caseRow(c, t, lang));
         lines.push("");
       });
     });
@@ -80,15 +78,18 @@ export const markdownAdapter: OutputAdapter<MarkdownOptions> = {
   },
 };
 
-function caseRow(c: ReportCase): string {
+function caseRow(c: ReportCase, messages: Messages, lang: Lang): string {
   const t = c.test;
-  const mods = t.modifiers.map((m) => `［${MODIFIER_LABELS[m]?.label ?? m}］`).join("");
+  const mods = t.modifiers.map((m) => messages.markdown.modifier(messages.modifiers[m]?.label ?? m)).join("");
   const titleCell = [mods, text(t.title)].filter(Boolean).join(" ");
-  const steps = t.steps.length ? stepLines(t.steps, mdStep).join("<br>") : "—";
-  const asserts = t.assertions.length ? t.assertions.map((a) => code(a.text)).join("<br>") : missingAssertionsLabel(t);
-  const judge = [VERDICT_LABELS[c.verdict], ...uniqueRules(t.warnings).map((w) => text(ruleLabel(w.rule)))].join(
-    "<br>",
-  );
+  const steps = t.steps.length ? stepLines(t.steps, { format: mdStep, lang }).join("<br>") : "—";
+  const asserts = t.assertions.length
+    ? t.assertions.map((a) => code(a.text)).join("<br>")
+    : missingAssertionsLabel(t, lang);
+  const judge = [
+    messages.verdicts[c.verdict],
+    ...uniqueRules(t.warnings).map((w) => text(ruleLabel(w.rule, lang))),
+  ].join("<br>");
   return row([c.no, titleCell, steps, asserts, judge]);
 }
 

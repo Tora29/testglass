@@ -17,6 +17,16 @@ export {
 export { defineConfig, loadConfig, type TestglassConfig } from "./core/config.js";
 export { testId } from "./core/id.js";
 export { createTestCase } from "./core/test-case.js";
+// 表示の言語
+export {
+  DEFAULT_LANG,
+  getMessages,
+  isLang,
+  LANGS,
+  type Lang,
+  type Messages,
+  type RuleText,
+} from "./i18n/index.js";
 // JS/TS 系の入力アダプタを作るための部品
 export { createJsAdapter, importsAny, JS_TEST_FILE, type JsAdapterDefinition } from "./input/js/adapter.js";
 export type { DiscoveredTest, JsProfile } from "./input/js/discover.js";
@@ -30,15 +40,13 @@ export { type MarkdownOptions, markdownAdapter } from "./output/markdown.js";
 // 出力アダプタを作るための部品（項番・判定・手順の表記を HTML と揃える）
 export {
   describeStep,
-  MODIFIER_LABELS,
   type ReportCase,
   reportCases,
   ruleLabel,
-  STEP_VERBS,
+  type StepLinesOptions,
   type StepView,
   stepLines,
   uniqueRules,
-  VERDICT_LABELS,
   type Verdict,
   verdictOf,
 } from "./output/report.js";

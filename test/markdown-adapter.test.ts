@@ -66,6 +66,16 @@ describe("markdownAdapter", () => {
     expect(row.match(/(?<!\\)\|/g)).toHaveLength(6);
   });
 
+  it('lang: "en" で見出し・表・判定を英語にする', () => {
+    const md = render([weak], { lang: "en" }).content;
+    expect(md.startsWith("# Test specification\n")).toBe(true);
+    expect(md).toContain("Static analysis (tests were not run)");
+    expect(md).toContain("## Issues");
+    expect(md).toContain("| Verdict | Issue | Count |");
+    expect(md).toContain("| No. | Test | Steps | Expected | Verdict |");
+    expect(md).toContain("Needs fix<br>No expect");
+  });
+
   it("テストの無いファイルは、その旨を書く", () => {
     const md = render([{ path: "empty.test.ts", source: `import { it } from "vitest";` }]).content;
     expect(md).toContain("## `empty.test.ts`\n\nvitest · 0 tests\n\nテストが見つからない");
