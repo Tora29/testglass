@@ -2,7 +2,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    // 公開するパッケージには src を含めないので、参照先の無いソースマップは出力しない
+    "sourceMap": false
   },
   "include": ["src"],
   "exclude": ["test", "dist", "node_modules"]
