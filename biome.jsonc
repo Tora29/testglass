@@ -6,8 +6,8 @@
     "useIgnoreFile": true
   },
   "files": {
-    // fixtures は「問題のあるテスト」を解析するための入力なので、整形も lint もしない
-    "includes": ["**", "!!**/dist", "!test/fixtures"]
+    // fixtures と examples（fixtures の英語版）は「問題のあるテスト」を解析するための入力なので、整形も lint もしない
+    "includes": ["**", "!!**/dist", "!test/fixtures", "!examples"]
   },
   "formatter": {
     "enabled": true,

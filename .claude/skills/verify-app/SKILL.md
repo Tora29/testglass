@@ -18,7 +18,7 @@ npm run lint
   - 外すときは `biome.jsonc` の `overrides` にファイル単位で書き、理由をコメントに残す
   - 1 か所だけなら `// biome-ignore lint/<group>/<rule>: <理由>` を使う
 - `src/output/html/assets/client.js` は HTML に埋め込むため ES5 で書く（`var` / `function` / 文字列連結。`?.`・アロー関数・template 文字列は使わない）。lint に言われても書き換えない
-- `test/fixtures/` は「問題のあるテスト」の見本なので、lint・整形の対象外。直さない
+- `test/fixtures/` と `examples/en/`（その英語版）は「問題のあるテスト」の見本なので、lint・整形の対象外。直さない
 
 ## 2. 型チェック
 
@@ -41,8 +41,8 @@ npm test
 npm run build && npm run demo
 ```
 
-- `demo` は `test/fixtures` を解析して `demo/spec.json` と `demo/spec.html` を作る
-- 「警告: error N 件 / warn N 件」は fixtures の問題を検出した結果で、正常な出力。ただし件数が変更前と変わったなら、その理由を確かめる（ルールや解析の変更によるものか）
+- `demo` は `test/fixtures` を解析して `demo/spec.json` と `demo/spec.html` を、`examples/en` を英語で `demo/en/spec.json` と `demo/en/spec.html` を作る
+- 「警告: error N 件 / warn N 件」は fixtures の問題を検出した結果で、正常な出力。ただし件数が変更前と変わったなら、その理由を確かめる（ルールや解析の変更によるものか）。日本語と英語の件数は同じになる
 
 1〜4 は `npm run verify` でまとめて実行できる。
 

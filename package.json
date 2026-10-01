@@ -49,7 +49,7 @@
     "format": "biome check --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "demo": "npm run build && node dist/cli.js --root test/fixtures --out demo/spec.json",
+    "demo": "npm run build && node dist/cli.js --root test/fixtures --out demo/spec.json && node dist/cli.js --root examples/en --out demo/en/spec.json --lang en",
     "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build",
     "verify": "npm run lint && npm run typecheck && npm test && npm run build && npm run demo"
   },

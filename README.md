@@ -354,11 +354,11 @@ npm test          # Vitest
 npm run typecheck
 npm run lint      # Biome（整形の差分は npm run format で直す）
 npm run build
-npm run demo      # test/fixtures から demo/spec.json と demo/spec.html を生成
+npm run demo      # test/fixtures から demo/spec.html、examples/en から英語の demo/en/spec.html を生成
 npm run verify    # lint・型チェック・テスト・ビルド・デモ生成をまとめて実行
 ```
 
-`test/fixtures/` には「良いテスト」と「警告が出るべきテスト」のサンプルがあり、`test/rules.test.ts` で各テストに出るべき警告を表にして検証しています。
+`test/fixtures/` には「良いテスト」と「警告が出るべきテスト」のサンプルがあり、`test/rules.test.ts` で各テストに出るべき警告を表にして検証しています。`examples/en/` はその英語版（英語のデモ用）で、テスト名や画面の文字だけを訳しています。`test/examples.test.ts` で、両者の解析結果（警告のルール・重大度・行など）が一致することを確かめています。fixtures を変えたときは、examples/en も合わせて直してください。
 
 ## ライセンス
 
