@@ -20,15 +20,15 @@ function checkDuplicateTitles(file: TestFile): void {
   const { defaultSeverity } = ruleMeta("duplicate-title");
   for (const tests of groups.values()) {
     if (tests.length < 2) continue;
-    const lines = tests.map((t) => t.location.line).join(", ");
+    const lines = tests.map((t) => t.location.line);
     tests.forEach((test, i) => {
       // 2件目以降は出現順の番号を足して ID の衝突を避ける
       if (i > 0) test.id = testId(file.path, test.suites, `${test.title}\u0000#${i + 1}`);
       test.warnings.push({
         rule: "duplicate-title",
         severity: defaultSeverity,
-        message: `同じ describe に同名のテストが ${tests.length} 件ある（${lines} 行目）`,
         line: test.location.line,
+        detail: { lines },
       });
     });
   }
@@ -49,13 +49,12 @@ function checkDuplicateBodies(spec: SpecJson): void {
     for (const { test } of entries) {
       const others = entries
         .filter((e) => e.test !== test)
-        .map((e) => `「${e.test.title}」(${e.file.path}:${e.test.location.line})`);
-      const shown = others.slice(0, 3).join("、") + (others.length > 3 ? ` ほか ${others.length - 3} 件` : "");
+        .map((e) => ({ path: e.file.path, title: e.test.title, line: e.test.location.line }));
       test.warnings.push({
         rule: "duplicate-body",
         severity: defaultSeverity,
-        message: `本体が同一のテストがある: ${shown}`,
         line: test.location.line,
+        detail: { tests: others },
       });
     }
   }

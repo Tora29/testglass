@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { buildSpec } from "../src/core/collect.js";
 import { validateRulesConfig } from "../src/rules/config.js";
-import type { SpecJson } from "../src/schema/types.js";
+import { warningMessage } from "../src/rules/messages.js";
+import type { SpecJson, Warning } from "../src/schema/types.js";
 
 const FIXTURES = ["vitest/cart.test.ts", "vitest/weak.test.ts", "playwright/login.spec.ts", "playwright/weak.spec.ts"];
 const inputs = FIXTURES.map((path) => ({ path, source: readFileSync(`test/fixtures/${path}`, "utf8") }));
@@ -69,7 +70,6 @@ describe("警告ルール", () => {
       {
         rule: "conditional-assertion",
         severity: "warn",
-        message: "条件分岐の中に expect があり、実行されない場合がある",
         line: 36,
       },
     ]);
@@ -85,9 +85,30 @@ describe("警告ルール", () => {
   it("本体が同一のテストの警告に、相手のテスト名と位置を示す", () => {
     const weak = spec.files.find((f) => f.path === "vitest/weak.test.ts")!;
     const w = weak.tests.find((t) => t.title === "千円は1,000と表示される")!.warnings[0]!;
-    expect(w.message).toBe(
+    expect(w.detail).toEqual({
+      tests: [
+        { path: "vitest/weak.test.ts", title: "1000は1,000になる", line: 59 },
+        { path: "vitest/weak.test.ts", title: "1000は1,000になる", line: 63 },
+      ],
+    });
+    expect(warningMessage(w)).toBe(
       "本体が同一のテストがある: 「1000は1,000になる」(vitest/weak.test.ts:59)、「1000は1,000になる」(vitest/weak.test.ts:63)",
     );
+  });
+
+  it("固定時間の待ち・同名のテスト・動的生成の警告に、文言を組み立てる詳細がつく", () => {
+    const weak = spec.files.find((f) => f.path === "vitest/weak.test.ts")!;
+    const wait = weak.tests.find((t) => t.title === "送信後に完了する")!.warnings.find((w) => w.rule === "fixed-wait")!;
+    expect(wait.detail?.code).toBeTruthy();
+    expect(warningMessage(wait)).toBe(`固定時間の待機がある: ${wait.detail?.code}`);
+
+    const dup = weak.tests.find((t) => t.location.line === 59)!.warnings.find((w) => w.rule === "duplicate-title")!;
+    expect(dup.detail).toEqual({ lines: [59, 63] });
+    expect(warningMessage(dup)).toBe("同じ describe に同名のテストが 2 件ある（59, 63 行目）");
+
+    const each = weak.tests.find((t) => t.location.line === 46)!.warnings[0]!;
+    expect(each).toMatchObject({ rule: "dynamic-test", detail: { reason: "each" } });
+    expect(warningMessage(each)).toBe("it.each / test.for によるテーブル駆動。各行のデータは展開していない");
   });
 });
 
@@ -103,5 +124,30 @@ describe("ルールの設定", () => {
     expect(() => validateRulesConfig({ "no-such-rule": "off" })).toThrow('未知のルールです: "no-such-rule"');
     expect(() => validateRulesConfig({ "fixed-wait": "warning" })).toThrow('"off" / "warn" / "error"');
     expect(validateRulesConfig({ "fixed-wait": "off" })).toEqual({ "fixed-wait": "off" });
+  });
+});
+
+describe("警告の文言", () => {
+  const w = (rule: string, detail?: Warning["detail"]): Warning => ({
+    rule,
+    severity: "warn",
+    ...(detail && { detail }),
+  });
+
+  it("skip と todo で文言を分ける", () => {
+    expect(warningMessage(w("skipped-test", { reason: "skip" }))).toBe(".skip / .fixme でスキップされている");
+    expect(warningMessage(w("skipped-test", { reason: "todo" }))).toBe(".todo のまま未実装");
+  });
+
+  it("本体が同一のテストは 3 件まで名前を挙げ、残りは件数で示す", () => {
+    const tests = [1, 2, 3, 4, 5].map((line) => ({ path: "a.test.ts", title: `t${line}`, line }));
+    expect(warningMessage(w("duplicate-body", { tests }))).toBe(
+      "本体が同一のテストがある: 「t1」(a.test.ts:1)、「t2」(a.test.ts:2)、「t3」(a.test.ts:3) ほか 2 件",
+    );
+  });
+
+  it("詳細が無くても文言を返し、未知のルールは ID を返す", () => {
+    expect(warningMessage(w("fixed-wait"))).toBe("固定時間の待機がある");
+    expect(warningMessage(w("my-rule"))).toBe("my-rule");
   });
 });

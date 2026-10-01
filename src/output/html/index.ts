@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import type { OutputAdapter } from "../../adapters/types.js";
 import { RULES } from "../../rules/catalog.js";
+import { warningMessage } from "../../rules/messages.js";
 import type { SpecJson } from "../../schema/types.js";
 import { describeStep, MODIFIER_LABELS, reportCases, VERDICT_LABELS } from "../report.js";
 
@@ -19,7 +20,13 @@ export const htmlAdapter: OutputAdapter<HtmlOptions> = {
   render(spec: SpecJson, options: HtmlOptions = {}) {
     const title = options.title ?? "テスト仕様書";
     const cases = reportCases(spec).map((fileCases) =>
-      fileCases.map((c) => ({ no: c.no, verdict: c.verdict, steps: c.test.steps.map(describeStep) })),
+      fileCases.map((c) => ({
+        no: c.no,
+        verdict: c.verdict,
+        steps: c.test.steps.map(describeStep),
+        // 警告の文言（test.warnings と同じ並び）
+        messages: c.test.warnings.map(warningMessage),
+      })),
     );
     const payload = { spec, rules: RULES, labels: { verdicts: VERDICT_LABELS, modifiers: MODIFIER_LABELS }, cases };
     const content = `<!doctype html>

@@ -67,11 +67,39 @@ export interface Assertion {
 
 export type Severity = "error" | "warn";
 
+/**
+ * 警告。表示する文言は持たず、出力のときにルールID と detail から組み立てる
+ * （spec.json を表示の言語に依存させないため。src/rules/messages.ts）。
+ */
 export interface Warning {
   /** ルールID（例: "no-assertions"） */
   rule: string;
   severity: Severity;
-  message: string;
   /** 警告の根拠になった行（あれば） */
   line?: number;
+  /** ルールごとの詳細（あれば） */
+  detail?: WarningDetail;
+}
+
+/** 警告の詳細。どの項目を使うかはルールによる */
+export interface WarningDetail {
+  /**
+   * 警告の理由の種類
+   * - skipped-test: "skip"（.skip / .fixme）| "todo"
+   * - dynamic-test: "each" | "loop" | "title" | "body"（DynamicFact の reason）
+   */
+  reason?: string;
+  /** fixed-wait: 待機しているコード */
+  code?: string;
+  /** duplicate-title: 同名のテストの行（昇順。自分も含む） */
+  lines?: number[];
+  /** duplicate-body: 本体が同一のほかのテスト */
+  tests?: TestRef[];
+}
+
+/** ほかのテストへの参照 */
+export interface TestRef {
+  path: string;
+  title: string;
+  line: number;
 }

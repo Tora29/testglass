@@ -66,11 +66,31 @@ export const specJsonSchema = {
     Warning: {
       type: "object",
       additionalProperties: false,
-      required: ["rule", "severity", "message"],
+      required: ["rule", "severity"],
       properties: {
         rule: { type: "string" },
         severity: { enum: ["error", "warn"] },
-        message: { type: "string" },
+        line: { type: "integer", minimum: 1 },
+        detail: { $ref: "#/$defs/WarningDetail" },
+      },
+    },
+    WarningDetail: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        reason: { type: "string" },
+        code: { type: "string" },
+        lines: { type: "array", items: { type: "integer", minimum: 1 } },
+        tests: { type: "array", items: { $ref: "#/$defs/TestRef" } },
+      },
+    },
+    TestRef: {
+      type: "object",
+      additionalProperties: false,
+      required: ["path", "title", "line"],
+      properties: {
+        path: { type: "string" },
+        title: { type: "string" },
         line: { type: "integer", minimum: 1 },
       },
     },

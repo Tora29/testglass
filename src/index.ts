@@ -46,6 +46,7 @@ export {
 export { RULE_IDS, RULES, type RuleId, type RuleMeta } from "./rules/catalog.js";
 export { applyRulesConfig, type RuleSetting, type RulesConfig, validateRulesConfig } from "./rules/config.js";
 export type { AssertionFact, AssertionKind, CodeRef, DynamicFact, TestFacts } from "./rules/facts.js";
+export { warningMessage } from "./rules/messages.js";
 export { evaluateTestRules } from "./rules/test-rules.js";
 export { specJsonSchema } from "./schema/json-schema.js";
 export * from "./schema/types.js";
