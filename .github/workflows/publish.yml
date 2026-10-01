@@ -1,0 +1,47 @@
+name: Publish
+
+# GitHub でリリースを公開したら npm に公開する。
+# npm の Trusted Publishing（OIDC）を使うので、npm のトークンを secrets に置かない。
+# 事前に npmjs.com のパッケージ設定で、このリポジトリと publish.yml を Trusted Publisher に登録しておく
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Trusted Publishing と provenance（ビルド元の証明）に使う
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          # Trusted Publishing には npm 11.5.1 以上が要る。Node 24 に同梱の npm で足りる
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      # リリースのタグ（v0.1.0）と package.json の version が違えば公開しない
+      - name: Check tag matches package.json version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version="v$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$version" ]; then
+            echo "::error::タグ $TAG と package.json の $version が一致しません"
+            exit 1
+          fi
+      - run: npm ci
+      # prepublishOnly で lint・型チェック・テスト・ビルドを実行してから公開する
+      - run: npm publish --provenance --access public
