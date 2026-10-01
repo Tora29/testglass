@@ -1,6 +1,18 @@
+# 依存パッケージ
 node_modules/
+
+# ビルドの成果物（npm run build）
 dist/
+
+# testglass の出力（npm run demo・npx testglass）
 demo/
 testglass/
+
+# ログ
 *.log
+
+# OS が作るファイル
 .DS_Store
+
+# Claude Code の個人用ファイル
+.claude/users
