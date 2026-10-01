@@ -139,7 +139,7 @@ button, input, select { font: inherit; color: inherit; }
 .fw { margin-top: 20px; }
 .fw button { font-size: var(--fs-md); }
 .chips { display: grid; gap: 14px; margin-top: 28px; max-width: 60rem; }
-.rule-row { display: grid; grid-template-columns: 4em minmax(0, 1fr); align-items: baseline; gap: 4px; }
+.rule-row { display: grid; grid-template-columns: minmax(4em, max-content) minmax(0, 1fr); align-items: baseline; gap: 4px; }
 .rule-verdict { font-size: var(--fs-sm); color: var(--ink-3); }
 .rule-row.error .rule-verdict { color: var(--error); }
 .rule-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0 8px; margin-left: -6px; }
@@ -225,7 +225,9 @@ main { padding-block: 8px 96px; }
 .spec tr.detail > td { padding: 20px 20px 32px 5rem; border-top: 1px dashed var(--line); }
 .detail-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; max-width: 980px; }
 .label { font-size: var(--fs-xs); color: var(--ink-3); margin-bottom: 12px; }
-.issue { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: 0 16px; padding-block: 12px; border-top: 1px solid var(--line-2); }
+/* 判定の列は、指摘の一覧全体でそろえる（subgrid）。長い判定名（英語など）に合わせて広がる */
+.issues { display: grid; grid-template-columns: minmax(5rem, max-content) minmax(0, 1fr); gap: 0 16px; }
+.issue { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; gap: 0 16px; padding-block: 12px; border-top: 1px solid var(--line-2); }
 .issue:first-of-type { border-top: 0; padding-top: 0; }
 .issue .sev { font-size: var(--fs-xs); padding-top: 1px; }
 .issue-title { color: var(--ink); font-size: var(--fs-md); }
@@ -273,6 +275,7 @@ main { padding-block: 8px 96px; }
   .spec tr.group td { border-top: 1px solid var(--line); }
   .spec > tbody > tr.group:first-child td { border-top: 0; }
   .spec tr.detail > td { padding: 16px; }
+  .issues { grid-template-columns: minmax(0, 1fr); }
   .issue { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
 

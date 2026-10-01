@@ -66,6 +66,7 @@ npx testglass --format html,md,csv
 | `--out <file>` | `spec.json`（`schema` では JSON Schema）の出力先。既定は `testglass/spec.json` で、`--root` ではなくコマンドを実行したディレクトリからの相対パス | `testglass`・`collect`・`schema` |
 | `--format <names>` | 出力形式。`html` / `md` / `csv` をカンマ区切りで指定（既定: `html`） | `testglass`・`render` |
 | `--out-dir <dir>` | 成果物の出力先（既定: `spec.json` と同じディレクトリ） | `testglass`・`render` |
+| `--lang <lang>` | 成果物の言語。`ja` / `en`（既定: `ja`）。設定ファイルの `lang` より優先する | `testglass`・`render` |
 | `--config <file>` | 設定ファイル。省略すると `testglass.config.{mjs,js,json}` を、`testglass`・`collect` では `--root` から、`render` ではカレントディレクトリから探す | `testglass`・`collect`・`render` |
 | `--fail-on <level>` | `error` / `warn` の警告が1件でもあれば終了コード 1 を返す（CI 用）。`warn` を指定すると、`error` があるときも 1 を返す | `testglass`・`collect`・`render` |
 
@@ -77,13 +78,14 @@ npx testglass --format html,md,csv
 - **見出し**：作成日時・件数、フレームワークのタブ（2種類以上あるとき）、判定ごとの指摘の一覧。指摘をクリックすると、その指摘があるテストに絞り込む。フレームワークを切り替えると、件数もそのフレームワークで数え直す
 - **本文**：ファイルごとに「項番／テスト名／手順／期待結果／判定」の表を並べる。describe は表の中の区切り行になる（狭い画面では1件ずつ縦に並べる）
   - 判定は、テストについた警告のうち最も重いもので決まる（`error` → 要修正、`warn` → 要確認、警告なし → 問題なし）
-  - Playwright の操作は「入力」「クリック」などの日本語で表示する（`spec.json` の中身はコード寄りの表記のまま）
+  - Playwright の操作は「入力」「クリック」などの日本語で表示する（`--lang en` では Fill・Click。`spec.json` の中身はコード寄りの表記のまま）
 - **行を開いた詳細**：指摘ごとに内容・理由・対処と該当行へのリンク、その下にソース（検証している行と指摘のある行に色がつく）
 - ライト／ダーク（既定は OS の設定に従う）。印刷時は固定バーを隠す。`spec.html#t-<テストID>` で特定のテストを開いた状態で表示できる
+- 画面の言語は日本語（既定）と英語。`--lang en` で、判定・指摘・列名・ボタンなどを英語にする（`<html lang>` も合わせる）。テスト名や `test.step` のタイトルなど、テストに書かれた文字はそのまま
 
 ### Markdown・CSV
 
-項番・判定・手順の表記（「入力」「クリック」など）は HTML と同じです。
+項番・判定・手順の表記（「入力」「クリック」など）は HTML と同じです。見出しや列名も `--lang` に従います。
 
 - **Markdown（`--format md` → `spec.md`）**：概要（件数と、判定ごとの指摘の表）のあと、ファイルごとに「項番／テスト名／手順／期待結果／判定」の表を並べる。describe ごとに見出しを立てて表を分ける。テスト名やコードに含まれる `|`・バッククォート・HTML・`$` はエスケープするので、GitHub などで表が崩れない
 - **CSV（`--format csv` → `spec.csv`）**：1行 = 1テスト。列は「項番, ファイル, フレームワーク, describe, テスト名, 修飾子, 手順, 期待結果, 判定, 指摘, 行」。表計算ソフトで絞り込み・並べ替えをする用途向け
@@ -159,6 +161,7 @@ npx testglass --format html,md,csv
   },
   "out": "docs/testglass/spec.json",
   "format": ["html"],
+  "lang": "ja",
   "outputOptions": { "html": { "title": "決済サービスのテスト仕様書" } }
 }
 ```
@@ -170,6 +173,7 @@ npx testglass --format html,md,csv
 | `rules` | ルールID → `"off"` / `"warn"` / `"error"`。未知の ID はエラーになる |
 | `out` / `outDir` | `spec.json` と成果物の出力先（ルートからの相対） |
 | `format` | 出力形式（`html` / `md` / `csv`） |
+| `lang` | 成果物の言語（`ja` / `en`。既定: `ja`）。すべての出力形式（独自の出力アダプタを含む）のオプションに `lang` として渡す |
 | `outputOptions` | 出力形式ごとのオプション（`html` と `md` は `title` と `fileName`、`csv` は `fileName` と `bom`） |
 | `inputAdapters` / `outputAdapters` | 独自のアダプタ（JS の設定ファイルでのみ指定できる） |
 
@@ -244,17 +248,19 @@ export interface OutputAdapter<Options = unknown> {
 
 項番・判定・手順の表記を組み込みの出力と揃えたいときは、`reportCases()`（項番と判定を付けたテスト）、`stepLines()`（番号付きの手順）、`ruleLabel()`（指摘の表示名）、`warningMessage()`（指摘の文言）などを使います。
 
+`--lang` や設定の `lang` で選んだ言語は、`render` の第2引数（オプション）の `lang` に入っています。`ruleLabel(rule, lang)` のように渡すと、組み込みの出力と同じ言語で表示できます。判定名などの文言は `getMessages(lang)` で取り出せます。
+
 ```js
 // testglass.config.mjs
 import { defineConfig, reportCases, ruleLabel } from "testglass";
 
 const todo = {
   name: "todo",
-  render(spec) {
+  render(spec, options = {}) {
     const lines = reportCases(spec)
       .flat()
       .filter((c) => c.verdict === "error")
-      .map((c) => `- [ ] ${c.no} ${c.test.title}（${c.test.warnings.map((w) => ruleLabel(w.rule)).join("、")}）`);
+      .map((c) => `- [ ] ${c.no} ${c.test.title}（${c.test.warnings.map((w) => ruleLabel(w.rule, options.lang)).join("、")}）`);
     return [{ path: "todo.md", content: `${lines.join("\n")}\n` }];
   },
 };
@@ -327,6 +333,7 @@ import { collect, csvAdapter, htmlAdapter, markdownAdapter } from "testglass";
 
 const { spec, unmatched } = await collect({ root: process.cwd(), rules: { "fixed-wait": "error" } });
 const [html] = htmlAdapter.render(spec, { title: "テスト仕様書" });
+const [htmlEn] = htmlAdapter.render(spec, { lang: "en", fileName: "spec.en.html" });
 const [md] = markdownAdapter.render(spec);
 const [csv] = csvAdapter.render(spec, { bom: false });
 ```

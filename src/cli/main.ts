@@ -3,7 +3,8 @@ import { dirname, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import type { OutputAdapter } from "../adapters/types.js";
 import { builtinInputAdapters, collect } from "../core/collect.js";
-import { loadConfig, type TestglassConfig } from "../core/config.js";
+import { loadConfig, type TestglassConfig, validateLang } from "../core/config.js";
+import type { Lang } from "../i18n/index.js";
 import { builtinOutputAdapters } from "../output/index.js";
 import { specJsonSchema } from "../schema/json-schema.js";
 import { SCHEMA_VERSION, type SpecJson } from "../schema/types.js";
@@ -29,6 +30,7 @@ const HELP = `testglass — テストコードからレビュー用のテスト�
   --out <file>        spec.json の出力先（既定: ${DEFAULT_OUT}）
   --format <names>    出力形式（html / md / csv をカンマ区切り。既定: html）
   --out-dir <dir>     成果物の出力先（既定: spec.json と同じディレクトリ）
+  --lang <lang>       成果物の言語（ja / en。既定: ja）
   --config <file>     設定ファイル（既定: ルートの testglass.config.{mjs,js,json}）
   --fail-on <level>   error / warn の警告が1件でもあれば終了コード 1 を返す
   -h, --help          このヘルプを表示
@@ -59,6 +61,7 @@ async function run(argv: string[], io: Io): Promise<number> {
       "out-dir": { type: "string" },
       config: { type: "string" },
       "fail-on": { type: "string" },
+      lang: { type: "string" },
       help: { type: "boolean", short: "h" },
       version: { type: "boolean", short: "v" },
     },
@@ -77,6 +80,12 @@ async function run(argv: string[], io: Io): Promise<number> {
   const failOn = values["fail-on"];
   if (failOn !== undefined && failOn !== "error" && failOn !== "warn") {
     throw new UsageError(`--fail-on には error か warn を指定してください（指定値: ${failOn}）`);
+  }
+  let lang: Lang | undefined;
+  try {
+    lang = validateLang(values.lang, "--lang");
+  } catch (e) {
+    throw new UsageError((e as Error).message);
   }
   const str = (k: "root" | "out" | "format" | "out-dir" | "config") => values[k];
 
@@ -100,7 +109,7 @@ async function run(argv: string[], io: Io): Promise<number> {
           io.cwd,
           str("out-dir") ?? (config.outDir ? join(root, config.outDir) : dirname(specPath)),
         );
-        await runRender(spec, outDir, formatsOf(str("format"), config), config, io);
+        await runRender(spec, outDir, formatsOf(str("format"), config), lang ?? config.lang, config, io);
       }
       return exitCode(spec, failOn);
     }
@@ -112,7 +121,7 @@ async function run(argv: string[], io: Io): Promise<number> {
       const { config } = await loadConfig(io.cwd, str("config") && resolve(io.cwd, str("config")!));
       const spec = await readSpec(specPath);
       const outDir = resolve(io.cwd, str("out-dir") ?? dirname(specPath));
-      await runRender(spec, outDir, formatsOf(str("format"), config), config, io);
+      await runRender(spec, outDir, formatsOf(str("format"), config), lang ?? config.lang, config, io);
       return exitCode(spec, failOn);
     }
     default:
@@ -152,6 +161,7 @@ async function runRender(
   spec: SpecJson,
   outDir: string,
   formats: string[],
+  lang: Lang | undefined,
   config: TestglassConfig,
   io: Io,
 ): Promise<void> {
@@ -161,7 +171,9 @@ async function runRender(
     if (!adapter) {
       throw new UsageError(`未知の出力形式です: ${format}（使える形式: ${adapters.map((a) => a.name).join(", ")}）`);
     }
-    for (const file of adapter.render(spec, config.outputOptions?.[format])) {
+    // 言語は、すべての出力アダプタに共通のオプションとして渡す（--lang ＞ 設定の lang）
+    const options = config.outputOptions?.[format];
+    for (const file of adapter.render(spec, lang ? { ...(options as object | undefined), lang } : options)) {
       const path = resolve(outDir, file.path);
       await writeText(path, file.content);
       io.stderr(`✔ ${format} を出力しました → ${rel(io, path)}\n`);

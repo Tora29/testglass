@@ -51,6 +51,25 @@ describe("csvAdapter", () => {
     expect(file.content.startsWith("項番,")).toBe(true);
   });
 
+  it('lang: "en" で列名・判定・修飾子を英語にする', () => {
+    const rows = parseCsv(render([weak], { lang: "en", bom: false }).content);
+    expect(rows[0]).toEqual([
+      "No.",
+      "File",
+      "Framework",
+      "describe",
+      "Test",
+      "Modifiers",
+      "Steps",
+      "Expected",
+      "Verdict",
+      "Issues",
+      "Line",
+    ]);
+    expect(rows.slice(1).map((r) => r[8])).toContain("Needs review");
+    expect(rows.slice(1).map((r) => r[5])).toContain("Skipped");
+  });
+
   it("1 行 = 1 テストで、すべての行が同じ列数になる", () => {
     const spec = buildSpec([weak]).spec;
     const rows = parseCsv(render([weak], { bom: false }).content);

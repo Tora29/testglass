@@ -2,53 +2,12 @@
  * 出力形式（HTML / Markdown / CSV）で共通の表示ロジック。
  * 項番・判定・手順の表記をここで決め、どの形式でも同じ表示にする。
  */
-import { RULES } from "../rules/catalog.js";
-import type { Modifier, SpecJson, TestCase, TestFile, Warning } from "../schema/types.js";
+import { DEFAULT_LANG, getMessages, type Lang } from "../i18n/index.js";
+import { RULES, type RuleId } from "../rules/catalog.js";
+import type { SpecJson, TestCase, TestFile, Warning } from "../schema/types.js";
 
 /** 判定：テストについた警告のうち最も重いもの */
 export type Verdict = "error" | "warn" | "ok";
-
-export const VERDICT_LABELS: Record<Verdict, string> = { error: "要修正", warn: "要確認", ok: "問題なし" };
-
-export const MODIFIER_LABELS: Record<Modifier, { label: string; title: string }> = {
-  skip: { label: "スキップ", title: ".skip / .fixme：実行されない" },
-  only: { label: "only", title: ".only：このテストだけが実行される" },
-  todo: { label: "未実装", title: ".todo：名前だけで中身がない" },
-  each: { label: "データ駆動", title: "it.each など：データの数だけ実行時に生成される" },
-};
-
-/** Playwright の操作名 → 表示 */
-export const STEP_VERBS: Readonly<Record<string, string>> = {
-  goto: "開く",
-  reload: "再読み込み",
-  goBack: "戻る",
-  goForward: "進む",
-  click: "クリック",
-  dblclick: "ダブルクリック",
-  tap: "タップ",
-  fill: "入力",
-  type: "入力",
-  pressSequentially: "入力",
-  insertText: "入力",
-  press: "キー入力",
-  down: "キー押下",
-  up: "キー解放",
-  check: "チェック",
-  uncheck: "チェック解除",
-  setChecked: "チェック設定",
-  selectOption: "選択",
-  selectText: "テキスト選択",
-  hover: "ホバー",
-  focus: "フォーカス",
-  blur: "フォーカス解除",
-  clear: "クリア",
-  setInputFiles: "ファイル指定",
-  dragTo: "ドラッグ",
-  dragAndDrop: "ドラッグ",
-  move: "マウス移動",
-  wheel: "スクロール",
-  waitForTimeout: "待機",
-};
 
 export function verdictOf(test: TestCase): Verdict {
   let v: Verdict = "ok";
@@ -70,8 +29,8 @@ export function uniqueRules(warnings: readonly Warning[]): Warning[] {
 }
 
 /** 警告の表示名（ルールの label。未知のルールは ID のまま） */
-export function ruleLabel(rule: string): string {
-  return RULES.find((r) => r.id === rule)?.label ?? rule;
+export function ruleLabel(rule: string, lang: Lang = DEFAULT_LANG): string {
+  return getMessages(lang).rules[rule as RuleId]?.label ?? rule;
 }
 
 export interface ReportCase {
@@ -105,13 +64,14 @@ export interface StepView {
 }
 
 /** spec.json の手順（先頭の空白 2 つで 1 段の入れ子）を、表示用に分解する */
-export function describeStep(step: string): StepView {
+export function describeStep(step: string, lang: Lang = DEFAULT_LANG): StepView {
+  const t = getMessages(lang);
   const depth = (/^ */.exec(step)?.[0].length ?? 0) / 2;
   const body = step.trim();
   const mock = /^mock: (.*)$/.exec(body);
-  if (mock) return { depth, verb: "モック", verbTitle: "本物の代わりの部品を用意している", body: mock[1]!, code: true };
+  if (mock) return { depth, verb: t.mock.label, verbTitle: t.mock.title, body: mock[1]!, code: true };
   const m = /^(?:(keyboard|mouse|touchscreen)\.)?([A-Za-z]+)(?: (.*))?$/.exec(body);
-  const verb = m && STEP_VERBS[m[2]!];
+  const verb = m && Object.hasOwn(t.stepVerbs, m[2]!) ? t.stepVerbs[m[2]!] : undefined;
   if (m && verb) {
     const view: StepView = { depth, verb, verbTitle: (m[1] ? `${m[1]}.` : "") + m[2], body: m[3] ?? "", code: true };
     if (m[2] === "waitForTimeout") view.wait = true;
@@ -121,14 +81,18 @@ export function describeStep(step: string): StepView {
   return { depth, body, code: /[();={}]|=>/.test(body) };
 }
 
-/**
- * 手順を、番号付きの行に並べる。番号は最上位の手順にだけ付け、入れ子は「└」で示す。
- * format で本文の書き方（Markdown のコード表記など）を変えられる。
- */
-export function stepLines(steps: readonly string[], format: (view: StepView) => string = plainStep): string[] {
+export interface StepLinesOptions {
+  /** 本文の書き方（Markdown のコード表記など。既定: plainStep） */
+  format?: (view: StepView) => string;
+  lang?: Lang;
+}
+
+/** 手順を、番号付きの行に並べる。番号は最上位の手順にだけ付け、入れ子は「└」で示す。 */
+export function stepLines(steps: readonly string[], options: StepLinesOptions = {}): string[] {
+  const { format = plainStep, lang } = options;
   let n = 0;
   return steps.map((step) => {
-    const view = describeStep(step);
+    const view = describeStep(step, lang);
     if (view.depth === 0) return `${++n}. ${format(view)}`;
     return `${"   ".repeat(view.depth - 1)}└ ${format(view)}`;
   });
@@ -139,8 +103,9 @@ export function plainStep(view: StepView): string {
 }
 
 /** 期待結果が無いときの表示（.todo は「未実装」、それ以外は「なし」） */
-export function missingAssertionsLabel(test: TestCase): string {
-  return test.modifiers.includes("todo") ? "未実装" : "なし";
+export function missingAssertionsLabel(test: TestCase, lang: Lang = DEFAULT_LANG): string {
+  const { noAssertions } = getMessages(lang);
+  return test.modifiers.includes("todo") ? noAssertions.todo : noAssertions.none;
 }
 
 /** 判定ごと・指摘の種類ごとの件数 */

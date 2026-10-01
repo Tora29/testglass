@@ -1,6 +1,7 @@
 import type { OutputAdapter } from "../adapters/types.js";
+import { DEFAULT_LANG, getMessages, type Lang } from "../i18n/index.js";
 import type { SpecJson } from "../schema/types.js";
-import { MODIFIER_LABELS, reportCases, ruleLabel, stepLines, uniqueRules, VERDICT_LABELS } from "./report.js";
+import { reportCases, ruleLabel, stepLines, uniqueRules } from "./report.js";
 
 export interface CsvOptions {
   /** 出力ファイル名（既定: "spec.csv"） */
@@ -10,21 +11,9 @@ export interface CsvOptions {
    * 付けないと、Excel でダブルクリックして開いたときに日本語が文字化けする。
    */
   bom?: boolean;
+  /** 表示の言語（既定: "ja"） */
+  lang?: Lang;
 }
-
-const HEADER = [
-  "項番",
-  "ファイル",
-  "フレームワーク",
-  "describe",
-  "テスト名",
-  "修飾子",
-  "手順",
-  "期待結果",
-  "判定",
-  "指摘",
-  "行",
-] as const;
 
 /**
  * 1 行 = 1 テストの CSV（RFC 4180）を出力する。表計算ソフトで絞り込み・並べ替えをする用途向け。
@@ -33,7 +22,9 @@ const HEADER = [
 export const csvAdapter: OutputAdapter<CsvOptions> = {
   name: "csv",
   render(spec: SpecJson, options: CsvOptions = {}) {
-    const records: string[][] = [[...HEADER]];
+    const lang = options.lang ?? DEFAULT_LANG;
+    const messages = getMessages(lang);
+    const records: string[][] = [[...messages.csv.header]];
     for (const c of reportCases(spec).flat()) {
       const t = c.test;
       records.push([
@@ -42,12 +33,12 @@ export const csvAdapter: OutputAdapter<CsvOptions> = {
         c.file.framework,
         t.suites.join(" / "),
         t.title,
-        t.modifiers.map((m) => MODIFIER_LABELS[m]?.label ?? m).join("、"),
-        stepLines(t.steps).join("\n"),
+        t.modifiers.map((m) => messages.modifiers[m]?.label ?? m).join(messages.csv.listSeparator),
+        stepLines(t.steps, { lang }).join("\n"),
         t.assertions.map((a) => a.text).join("\n"),
-        VERDICT_LABELS[c.verdict],
+        messages.verdicts[c.verdict],
         uniqueRules(t.warnings)
-          .map((w) => ruleLabel(w.rule))
+          .map((w) => ruleLabel(w.rule, lang))
           .join("\n"),
         String(t.location.line),
       ]);

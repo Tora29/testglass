@@ -49,6 +49,15 @@ describe("describeStep", () => {
     expect(describeStep("waitForTimeout 3000")).toMatchObject({ verb: "待機", wait: true });
   });
 
+  it("lang で表示名の言語を変える", () => {
+    expect(describeStep("fill [Email] ← a@b.c", "en")).toMatchObject({ verb: "Fill", verbTitle: "fill" });
+    expect(describeStep("mock: vi.fn()", "en")).toMatchObject({ verb: "Mock", body: "vi.fn()" });
+  });
+
+  it("操作名と同じ名前のプロパティ（toString など）を操作とみなさない", () => {
+    expect(describeStep("toString x").verb).toBeUndefined();
+  });
+
   it("モック・コード・文章を見分ける", () => {
     expect(describeStep("mock: vi.fn()")).toMatchObject({ verb: "モック", body: "vi.fn()", code: true });
     expect(describeStep("const x = await f()")).toEqual({ depth: 0, body: "const x = await f()", code: true });

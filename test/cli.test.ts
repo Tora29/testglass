@@ -70,6 +70,19 @@ describe("testglass（collect + render）", () => {
     expect(existsSync(join(cwd, "spec.html"))).toBe(false);
   });
 
+  it("--lang en、または設定の lang で成果物を英語にする", async () => {
+    expect(await main(["--root", "project", "--format", "html,md", "--lang", "en"], io)).toBe(0);
+    expect(readFileSync(join(cwd, "testglass/spec.html"), "utf8")).toContain('<html lang="en">');
+    expect(readFileSync(join(cwd, "testglass/spec.md"), "utf8")).toContain("# Test specification");
+
+    writeFileSync(join(cwd, "project/testglass.config.json"), JSON.stringify({ lang: "en", format: ["csv"] }));
+    expect(await main(["--root", "project", "--out", "b/spec.json"], io)).toBe(0);
+    expect(readFileSync(join(cwd, "b/spec.csv"), "utf8")).toContain("No.,File,");
+    // --lang は設定より優先する
+    expect(await main(["--root", "project", "--out", "c/spec.json", "--lang", "ja"], io)).toBe(0);
+    expect(readFileSync(join(cwd, "c/spec.csv"), "utf8")).toContain("項番,ファイル,");
+  });
+
   it("JS の設定ファイルで出力アダプタを追加できる", async () => {
     writeFileSync(
       join(cwd, "project/testglass.config.mjs"),
@@ -120,6 +133,14 @@ describe("エラー", () => {
     writeFileSync(join(cwd, "project/testglass.config.json"), JSON.stringify({ rules: { typo: "off" } }));
     expect(await main(["--root", "project"], io)).toBe(2);
     expect(err.join("")).toContain('未知のルールです: "typo"');
+  });
+
+  it("未対応の言語は終了コード 2", async () => {
+    expect(await main(["--root", "project", "--lang", "fr"], io)).toBe(2);
+    expect(err.join("")).toContain('--lang には ja / en のいずれかを指定してください（指定値: "fr"）');
+    writeFileSync(join(cwd, "project/testglass.config.json"), JSON.stringify({ lang: "EN" }));
+    expect(await main(["--root", "project"], io)).toBe(2);
+    expect(err.join("")).toContain('lang には ja / en のいずれかを指定してください（指定値: "EN"）');
   });
 
   it("schemaVersion が違う spec.json は読まない", async () => {
