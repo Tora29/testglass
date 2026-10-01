@@ -206,4 +206,68 @@ export const ja: Messages = {
     noResults: "該当するテストはない",
     clearFilters: "絞り込みを解除",
   },
+  cli: {
+    help: `testglass — テストコードからレビュー用のテスト仕様書を作る
+
+使い方:
+  testglass [options]                   テストを読んで spec.json と成果物（HTML）をまとめて生成
+  testglass collect [options]           テストを読んで spec.json を上書き
+  testglass render <spec.json> [opts]   spec.json から成果物を生成
+  testglass schema [--out <file>]       spec.json の JSON Schema を出力
+
+オプション:
+  --root <dir>        解析するルートディレクトリ（既定: カレントディレクトリ）
+  --out <file>        spec.json の出力先（既定: testglass/spec.json）
+  --format <names>    出力形式（html / md / csv をカンマ区切り。既定: html）
+  --out-dir <dir>     成果物の出力先（既定: spec.json と同じディレクトリ）
+  --lang <lang>       成果物とメッセージの言語（ja / en。既定: ja）
+  --config <file>     設定ファイル（既定: ルートの testglass.config.{mjs,js,json}）
+  --fail-on <level>   error / warn の警告が1件でもあれば終了コード 1 を返す
+  -h, --help          このヘルプを表示
+  -v, --version       バージョンを表示
+
+English: testglass --help --lang en
+`,
+    seeHelp: "`testglass --help` で使い方を確認できます。",
+    collected: (s) =>
+      `✔ ${s.files} ファイル / ${s.tests} テストを解析しました → ${s.path}\n` +
+      `  警告: error ${s.errors} 件 / warn ${s.warns} 件（警告のあるテスト ${s.testsWithWarnings} 件）`,
+    unmatched: (paths) =>
+      `  どの入力アダプタにも該当しなかったファイル（${paths.length} 件）:\n` +
+      paths.map((p) => `    - ${p}\n`).join("") +
+      "  自動判定が外れている場合は、設定ファイルの frameworks で指定してください。",
+    rendered: (format, path) => `✔ ${format} を出力しました → ${path}`,
+  },
+  errors(e) {
+    switch (e.code) {
+      case "config-not-found":
+        return `設定ファイルが見つかりません: ${e.path}`;
+      case "config-not-object":
+        return `設定ファイルはオブジェクトを返してください: ${e.path}`;
+      case "invalid-lang":
+        return `${e.option} には ${e.langs.join(" / ")} のいずれかを指定してください（指定値: ${JSON.stringify(e.value)}）`;
+      case "unknown-framework-adapter":
+        return `frameworks に未知のアダプタが指定されています: "${e.name}"`;
+      case "rules-not-object":
+        return "rules はオブジェクトで指定してください";
+      case "unknown-rule":
+        return `未知のルールです: "${e.rule}"（指定できるルール: ${e.rules.join(", ")}）`;
+      case "invalid-rule-value":
+        return `ルール "${e.rule}" の値は "off" / "warn" / "error" のいずれかにしてください（指定値: ${JSON.stringify(e.value)}）`;
+      case "invalid-fail-on":
+        return `--fail-on には error か warn を指定してください（指定値: ${e.value}）`;
+      case "extra-args":
+        return `余分な引数があります: ${e.args.join(" ")}`;
+      case "missing-spec-path":
+        return "render には spec.json のパスを指定してください";
+      case "unknown-command":
+        return `未知のコマンドです: ${e.command}`;
+      case "unknown-format":
+        return `未知の出力形式です: ${e.format}（使える形式: ${e.formats.join(", ")}）`;
+      case "unreadable-spec":
+        return `spec.json を読めません: ${e.path}（${e.reason}）`;
+      case "unsupported-schema":
+        return `対応していない schemaVersion です: ${String(e.version)}（このバージョンは ${e.supported} に対応）`;
+    }
+  },
 };

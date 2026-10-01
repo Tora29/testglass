@@ -7,6 +7,9 @@ const DYNAMIC_MESSAGES: Readonly<Record<string, string>> = {
   body: "A function reference is passed as the body, so its content cannot be analyzed",
 };
 
+/** 「1 file」「2 files」のように数と単語をつなげる */
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 /** duplicate-body で名前を挙げるテストの上限（残りは件数だけ示す） */
 const MAX_SHOWN_TESTS = 3;
 
@@ -207,5 +210,67 @@ export const en: Messages = {
     noTests: "No tests found",
     noResults: "No matching tests",
     clearFilters: "Clear filters",
+  },
+  cli: {
+    help: `testglass — generate a test specification for review from your test code
+
+Usage:
+  testglass [options]                   Read the tests and generate spec.json and the outputs (HTML)
+  testglass collect [options]           Read the tests and overwrite spec.json
+  testglass render <spec.json> [opts]   Generate the outputs from spec.json
+  testglass schema [--out <file>]       Print the JSON Schema of spec.json
+
+Options:
+  --root <dir>        Root directory to analyze (default: the current directory)
+  --out <file>        Where to write spec.json (default: testglass/spec.json)
+  --format <names>    Output formats (comma-separated html / md / csv. default: html)
+  --out-dir <dir>     Where to write the outputs (default: the directory of spec.json)
+  --lang <lang>       Language of the outputs and messages (ja / en. default: ja)
+  --config <file>     Config file (default: testglass.config.{mjs,js,json} in the root)
+  --fail-on <level>   Exit with code 1 if there is at least one error / warn warning
+  -h, --help          Show this help
+  -v, --version       Show the version
+`,
+    seeHelp: "Run `testglass --help --lang en` for usage.",
+    collected: (s) =>
+      `✔ Analyzed ${plural(s.files, "file")} / ${plural(s.tests, "test")} → ${s.path}\n` +
+      `  Warnings: error ${s.errors} / warn ${s.warns} (${plural(s.testsWithWarnings, "test")} with warnings)`,
+    unmatched: (paths) =>
+      `  Files that matched no input adapter (${paths.length}):\n` +
+      paths.map((p) => `    - ${p}\n`).join("") +
+      "  If the automatic detection is wrong, specify them with frameworks in the config file.",
+    rendered: (format, path) => `✔ Wrote ${format} → ${path}`,
+  },
+  errors(e) {
+    switch (e.code) {
+      case "config-not-found":
+        return `Config file not found: ${e.path}`;
+      case "config-not-object":
+        return `The config file must export an object: ${e.path}`;
+      case "invalid-lang":
+        return `${e.option} must be one of ${e.langs.join(" / ")} (got: ${JSON.stringify(e.value)})`;
+      case "unknown-framework-adapter":
+        return `Unknown adapter in frameworks: "${e.name}"`;
+      case "rules-not-object":
+        return "rules must be an object";
+      case "unknown-rule":
+        return `Unknown rule: "${e.rule}" (available rules: ${e.rules.join(", ")})`;
+      case "invalid-rule-value":
+        return `The value of rule "${e.rule}" must be "off" / "warn" / "error" (got: ${JSON.stringify(e.value)})`;
+      case "invalid-fail-on":
+        return `--fail-on must be error or warn (got: ${e.value})`;
+      case "extra-args":
+        return `Unexpected arguments: ${e.args.join(" ")}`;
+      case "missing-spec-path":
+        return "render needs the path to spec.json";
+      case "unknown-command":
+        return `Unknown command: ${e.command}`;
+      case "unknown-format":
+        return `Unknown output format: ${e.format} (available formats: ${e.formats.join(", ")})`;
+      case "unreadable-spec":
+        return `Cannot read spec.json: ${e.path} (${e.reason})`;
+      case "unsupported-schema":
+        return `Unsupported schemaVersion: ${String(e.version)} (this version supports ${e.supported})`;
+    }
   },
 };
