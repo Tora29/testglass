@@ -11,6 +11,15 @@
     "static-analysis"
   ],
   "license": "MIT",
+  "author": "Tora29 (https://github.com/Tora29)",
+  "homepage": "https://github.com/Tora29/testglass#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tora29/testglass.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Tora29/testglass/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=22.12"
