@@ -214,7 +214,8 @@ npx testglass --format html,md,csv
 | `tests[].modifiers` | `"skip"` / `"only"` / `"todo"` / `"each"`。外側の describe から引き継いだものも含む。Playwright の `fixme` は `"skip"` |
 | `tests[].steps` | 手順（上記のルールで要約したもの）。`test.step` の入れ子は先頭の空白2つ分ずつ字下げする |
 | `tests[].assertions` | アサーションの行と式（空白は詰める）。`test.step` やコールバックの中にあるものも含む |
-| `tests[].warnings` | `{ rule, severity, message, line? }`。`line` は警告の根拠になった行 |
+| `tests[].warnings` | `{ rule, severity, line?, detail? }`。`line` は警告の根拠になった行。表示する文言は持たず、出力のときに `rule` と `detail` から組み立てる（`warningMessage(warning)` で取り出せる） |
+| `tests[].warnings[].detail` | ルールごとの詳細。`reason`（`skipped-test` の `skip` / `todo`、`dynamic-test` の `each` / `loop` / `title` / `body`）、`code`（`fixed-wait` の待機しているコード）、`lines`（`duplicate-title` の同名のテストの行）、`tests`（`duplicate-body` の本体が同一のテスト。`{ path, title, line }`） |
 | `tests[].source` | テスト宣言全体のソース（字下げは戻してある） |
 | `tests[].fingerprint` | 本体をコメント・空白を除いて正規化したハッシュ（任意）。重複検出に使う。2断面の比較で「名前だけ変わったテスト」を追跡するのにも使える |
 
@@ -241,7 +242,7 @@ export interface OutputAdapter<Options = unknown> {
 
 ### 出力アダプタの例（要修正のテストの一覧）
 
-項番・判定・手順の表記を組み込みの出力と揃えたいときは、`reportCases()`（項番と判定を付けたテスト）、`stepLines()`（番号付きの手順）、`ruleLabel()`（指摘の表示名）などを使います。
+項番・判定・手順の表記を組み込みの出力と揃えたいときは、`reportCases()`（項番と判定を付けたテスト）、`stepLines()`（番号付きの手順）、`ruleLabel()`（指摘の表示名）、`warningMessage()`（指摘の文言）などを使います。
 
 ```js
 // testglass.config.mjs

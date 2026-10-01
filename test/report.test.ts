@@ -3,7 +3,7 @@ import { buildSpec } from "../src/core/collect.js";
 import { describeStep, reportCases, stepLines, uniqueRules, verdictOf } from "../src/output/report.js";
 import type { TestCase, Warning } from "../src/schema/types.js";
 
-const warning = (rule: string, severity: Warning["severity"]): Warning => ({ rule, severity, message: rule });
+const warning = (rule: string, severity: Warning["severity"]): Warning => ({ rule, severity });
 const withWarnings = (warnings: Warning[]) => ({ warnings }) as TestCase;
 
 describe("verdictOf", () => {

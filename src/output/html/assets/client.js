@@ -86,7 +86,7 @@
   spec.files.forEach(function (file, fi) {
     file.tests.forEach(function (test, ti) {
       var c = payload.cases[fi][ti];
-      entries.push({ file: file, test: test, no: c.no, verdict: c.verdict, steps: c.steps });
+      entries.push({ file: file, test: test, no: c.no, verdict: c.verdict, steps: c.steps, messages: c.messages });
     });
   });
   /** 判定ごと・指摘の種類ごとの件数。framework を指定するとそのフレームワークだけを数える */
@@ -307,7 +307,7 @@
           { class: "findings" },
           uniqueRules(t.warnings).map(function (w) {
             var meta = ruleMeta[w.rule];
-            return el("li", { title: w.message, text: meta ? meta.label : w.rule });
+            return el("li", { title: entry.messages[t.warnings.indexOf(w)], text: meta ? meta.label : w.rule });
           }),
         ),
       );
@@ -378,7 +378,7 @@
     var children = [];
     if (t.warnings.length) {
       var issues = el("div", { class: "issues" });
-      t.warnings.forEach(function (w) {
+      t.warnings.forEach(function (w, wi) {
         var meta = ruleMeta[w.rule];
         var title = el("div", { class: "issue-title" }, [
           meta ? meta.label : w.rule,
@@ -391,7 +391,7 @@
           });
           title.appendChild(link);
         }
-        var body = el("div", null, [title, el("p", { text: w.message })]);
+        var body = el("div", null, [title, el("p", { text: entry.messages[wi] })]);
         if (meta) {
           body.appendChild(
             el("dl", null, [
@@ -488,8 +488,8 @@
             t.assertions.map(function (a) {
               return a.text;
             }),
-            t.warnings.map(function (w) {
-              return w.message + " " + w.rule + " " + (ruleMeta[w.rule] ? ruleMeta[w.rule].label : "");
+            t.warnings.map(function (w, wi) {
+              return entry.messages[wi] + " " + w.rule + " " + (ruleMeta[w.rule] ? ruleMeta[w.rule].label : "");
             }),
           )
           .join("\n")
