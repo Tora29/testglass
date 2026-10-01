@@ -1,14 +1,17 @@
 {
   "name": "testglass",
   "version": "0.1.0",
-  "description": "Generate a human-reviewable test specification (single-file HTML) from test code by static analysis",
+  "description": "Generate a human-reviewable test specification (HTML, Markdown, CSV) from Vitest and Playwright tests by static analysis",
   "keywords": [
     "test",
     "specification",
     "review",
+    "report",
     "vitest",
     "playwright",
-    "static-analysis"
+    "static-analysis",
+    "markdown",
+    "csv"
   ],
   "license": "MIT",
   "author": "Tora29 (https://github.com/Tora29)",
