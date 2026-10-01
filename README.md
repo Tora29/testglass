@@ -70,7 +70,7 @@ npx testglass --format html,md,csv
 | `--out <file>` | `spec.json`（`schema` では JSON Schema）の出力先。既定は `testglass/spec.json` で、`--root` ではなくコマンドを実行したディレクトリからの相対パス | `testglass`・`collect`・`schema` |
 | `--format <names>` | 出力形式。`html` / `md` / `csv` をカンマ区切りで指定（既定: `html`） | `testglass`・`render` |
 | `--out-dir <dir>` | 成果物の出力先（既定: `spec.json` と同じディレクトリ） | `testglass`・`render` |
-| `--lang <lang>` | 成果物の言語。`ja` / `en`（既定: `ja`）。設定ファイルの `lang` より優先する | `testglass`・`render` |
+| `--lang <lang>` | 成果物と CLI のメッセージの言語。`ja` / `en`（既定: `ja`）。設定ファイルの `lang` より優先する | すべて |
 | `--config <file>` | 設定ファイル。省略すると `testglass.config.{mjs,js,json}` を、`testglass`・`collect` では `--root` から、`render` ではカレントディレクトリから探す | `testglass`・`collect`・`render` |
 | `--fail-on <level>` | `error` / `warn` の警告が1件でもあれば終了コード 1 を返す（CI 用）。`warn` を指定すると、`error` があるときも 1 を返す | `testglass`・`collect`・`render` |
 
@@ -177,7 +177,7 @@ npx testglass --format html,md,csv
 | `rules` | ルールID → `"off"` / `"warn"` / `"error"`。未知の ID はエラーになる |
 | `out` / `outDir` | `spec.json` と成果物の出力先（ルートからの相対） |
 | `format` | 出力形式（`html` / `md` / `csv`） |
-| `lang` | 成果物の言語（`ja` / `en`。既定: `ja`）。すべての出力形式（独自の出力アダプタを含む）のオプションに `lang` として渡す |
+| `lang` | 成果物と CLI のメッセージの言語（`ja` / `en`。既定: `ja`）。すべての出力形式（独自の出力アダプタを含む）のオプションに `lang` として渡す |
 | `outputOptions` | 出力形式ごとのオプション（`html` と `md` は `title` と `fileName`、`csv` は `fileName` と `bom`） |
 | `inputAdapters` / `outputAdapters` | 独自のアダプタ（JS の設定ファイルでのみ指定できる） |
 
@@ -344,6 +344,8 @@ const [csv] = csvAdapter.render(spec, { bom: false });
 
 ファイルシステムを使わずに解析したい場合は、`buildSpec([{ path, source }], options)` を使います。
 
+設定の誤りなど testglass が投げるエラーは `TestglassError` で、`message` は日本語です。`errorMessage(error, "en")` で英語の文言を取り出せます。種類と値は `error.detail` に入っています。
+
 ## 設計メモ
 
 - JS/TS の解析には TypeScript Compiler API（`typescript@6`）を使っています。TypeScript 7（ネイティブ版）の JS API はまだ `unstable` なので、安定するまでは 6 系に固定します。利用するプロジェクト側の TypeScript のバージョンには影響しません。
@@ -444,7 +446,7 @@ An option is ignored by commands that are not listed in its "Commands" column.
 | `--out <file>` | Where to write `spec.json` (the JSON Schema for `schema`). Defaults to `testglass/spec.json`, relative to the directory where you run the command, not to `--root` | `testglass`, `collect`, `schema` |
 | `--format <names>` | Output formats. Comma-separated `html` / `md` / `csv` (default: `html`) | `testglass`, `render` |
 | `--out-dir <dir>` | Where to write the outputs (default: the directory of `spec.json`) | `testglass`, `render` |
-| `--lang <lang>` | Language of the outputs. `ja` / `en` (default: `ja`). Takes precedence over `lang` in the config file | `testglass`, `render` |
+| `--lang <lang>` | Language of the outputs and the CLI messages. `ja` / `en` (default: `ja`). Takes precedence over `lang` in the config file | All |
 | `--config <file>` | Config file. If omitted, `testglass.config.{mjs,js,json}` is looked up in `--root` for `testglass` and `collect`, and in the current directory for `render` | `testglass`, `collect`, `render` |
 | `--fail-on <level>` | Exits with code 1 if there is at least one `error` / `warn` warning (for CI). With `warn`, it also exits with 1 when there are `error` warnings | `testglass`, `collect`, `render` |
 
@@ -551,7 +553,7 @@ Put `testglass.config.json` (or `.mjs` / `.js`) in the root.
 | `rules` | Rule ID → `"off"` / `"warn"` / `"error"`. Unknown IDs are an error |
 | `out` / `outDir` | Where to write `spec.json` and the outputs (relative to the root) |
 | `format` | Output formats (`html` / `md` / `csv`) |
-| `lang` | Language of the outputs (`ja` / `en`, default: `ja`). Passed as `lang` to the options of every output format (including custom output adapters) |
+| `lang` | Language of the outputs and the CLI messages (`ja` / `en`, default: `ja`). Passed as `lang` to the options of every output format (including custom output adapters) |
 | `outputOptions` | Options for each output format (`title` and `fileName` for `html` and `md`; `fileName` and `bom` for `csv`) |
 | `inputAdapters` / `outputAdapters` | Custom adapters (only in JS config files) |
 
@@ -717,6 +719,8 @@ const [csv] = csvAdapter.render(spec, { bom: false, lang: "en" });
 ```
 
 To parse without the file system, use `buildSpec([{ path, source }], options)`.
+
+Errors thrown by testglass, such as config mistakes, are `TestglassError`s, and their `message` is in Japanese. Use `errorMessage(error, "en")` to get the English message. The kind of error and its values are in `error.detail`.
 
 ## Design notes
 

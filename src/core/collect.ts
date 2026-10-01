@@ -7,6 +7,7 @@ import { vitestAdapter } from "../input/vitest.js";
 import { applyRulesConfig, type RulesConfig } from "../rules/config.js";
 import { applySpecRules } from "../rules/spec-rules.js";
 import { SCHEMA_VERSION, type SpecJson, type TestFile } from "../schema/types.js";
+import { TestglassError } from "./errors.js";
 
 /** 組み込みの入力アダプタ（先に match したものが使われる） */
 export const builtinInputAdapters: readonly InputAdapter[] = [playwrightAdapter, vitestAdapter];
@@ -84,7 +85,7 @@ export async function collect(options: CollectOptions): Promise<BuildResult> {
   const adapters = options.adapters ?? builtinInputAdapters;
   for (const name of new Set(forced.values())) {
     if (!adapters.some((a) => a.name === name)) {
-      throw new Error(`frameworks に未知のアダプタが指定されています: "${name}"`);
+      throw new TestglassError({ code: "unknown-framework-adapter", name });
     }
   }
 

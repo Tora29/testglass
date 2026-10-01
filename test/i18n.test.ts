@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { type ErrorDetail, errorMessage, TestglassError } from "../src/core/errors.js";
 import { getMessages, LANGS } from "../src/i18n/index.js";
 import { RULE_IDS } from "../src/rules/catalog.js";
 import { warningMessage } from "../src/rules/messages.js";
@@ -53,5 +54,38 @@ describe("英語の警告の文言", () => {
     expect(warningMessage({ rule: "snapshot-only", severity: "warn" })).toBe(
       "スナップショットの比較のみで検証している",
     );
+  });
+});
+
+describe("エラーの文言", () => {
+  const details: ErrorDetail[] = [
+    { code: "config-not-found", path: "a.json" },
+    { code: "config-not-object", path: "a.json" },
+    { code: "invalid-lang", option: "--lang", value: "fr", langs: LANGS },
+    { code: "unknown-framework-adapter", name: "jest" },
+    { code: "rules-not-object" },
+    { code: "unknown-rule", rule: "typo", rules: ["no-assertions"] },
+    { code: "invalid-rule-value", rule: "fixed-wait", value: "warning" },
+    { code: "invalid-fail-on", value: "x" },
+    { code: "extra-args", args: ["b"] },
+    { code: "missing-spec-path" },
+    { code: "unknown-command", command: "publish" },
+    { code: "unknown-format", format: "pdf", formats: ["html"] },
+    { code: "unreadable-spec", path: "a.json", reason: "ENOENT" },
+    { code: "unsupported-schema", version: 99, supported: 1 },
+  ];
+
+  it.each(LANGS)("%s：すべての種類のエラーに文言がある", (lang) => {
+    for (const detail of details) expect(errorMessage(new TestglassError(detail), lang), detail.code).toBeTruthy();
+  });
+
+  it("message は日本語で、ファイルのパスを先頭に付ける", () => {
+    const e = new TestglassError({ code: "rules-not-object" }, "testglass.config.json");
+    expect(e.message).toBe("testglass.config.json: rules はオブジェクトで指定してください");
+    expect(errorMessage(e, "en")).toBe("testglass.config.json: rules must be an object");
+  });
+
+  it("testglass 以外のエラーは message をそのまま返す", () => {
+    expect(errorMessage(new Error("boom"), "en")).toBe("boom");
   });
 });

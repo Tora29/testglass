@@ -15,6 +15,7 @@ export {
   type SourceInput,
 } from "./core/collect.js";
 export { defineConfig, loadConfig, type TestglassConfig } from "./core/config.js";
+export { type ErrorDetail, errorMessage, TestglassError } from "./core/errors.js";
 export { testId } from "./core/id.js";
 export { createTestCase } from "./core/test-case.js";
 // 表示の言語

@@ -1,3 +1,4 @@
+import { TestglassError } from "../core/errors.js";
 import type { Severity, SpecJson } from "../schema/types.js";
 import { RULE_IDS } from "./catalog.js";
 
@@ -8,16 +9,14 @@ export type RulesConfig = Record<string, RuleSetting>;
 export function validateRulesConfig(rules: unknown): RulesConfig {
   if (rules === undefined) return {};
   if (typeof rules !== "object" || rules === null || Array.isArray(rules)) {
-    throw new Error(`rules はオブジェクトで指定してください`);
+    throw new TestglassError({ code: "rules-not-object" });
   }
   for (const [id, value] of Object.entries(rules)) {
     if (!RULE_IDS.includes(id)) {
-      throw new Error(`未知のルールです: "${id}"（指定できるルール: ${RULE_IDS.join(", ")}）`);
+      throw new TestglassError({ code: "unknown-rule", rule: id, rules: RULE_IDS });
     }
     if (!["off", "warn", "error"].includes(value as string)) {
-      throw new Error(
-        `ルール "${id}" の値は "off" / "warn" / "error" のいずれかにしてください（指定値: ${JSON.stringify(value)}）`,
-      );
+      throw new TestglassError({ code: "invalid-rule-value", rule: id, value });
     }
   }
   return rules as RulesConfig;

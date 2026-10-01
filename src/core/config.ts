@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import type { InputAdapter, OutputAdapter } from "../adapters/types.js";
 import { isLang, LANGS, type Lang } from "../i18n/index.js";
 import { type RulesConfig, validateRulesConfig } from "../rules/config.js";
+import { TestglassError } from "./errors.js";
 
 export interface TestglassConfig {
   /** 解析対象の glob（ルートからの相対） */
@@ -44,7 +45,7 @@ export const CONFIG_FILES = ["testglass.config.mjs", "testglass.config.js", "tes
 export async function loadConfig(dir: string, explicit?: string): Promise<{ config: TestglassConfig; path?: string }> {
   const path = explicit ? resolve(explicit) : CONFIG_FILES.map((f) => resolve(dir, f)).find((p) => existsSync(p));
   if (!path) return { config: {} };
-  if (!existsSync(path)) throw new Error(`設定ファイルが見つかりません: ${path}`);
+  if (!existsSync(path)) throw new TestglassError({ code: "config-not-found", path });
 
   let raw: unknown;
   if (path.endsWith(".json")) {
@@ -54,14 +55,17 @@ export async function loadConfig(dir: string, explicit?: string): Promise<{ conf
     raw = mod.default ?? mod;
   }
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-    throw new Error(`設定ファイルはオブジェクトを返してください: ${path}`);
+    throw new TestglassError({ code: "config-not-object", path });
   }
   const config = raw as TestglassConfig;
   try {
     validateRulesConfig(config.rules);
     validateLang(config.lang, "lang");
   } catch (e) {
-    throw new Error(`${path}: ${(e as Error).message}`);
+    // どの設定ファイルの誤りか分かるよう、ファイルのパスを添える。lang が正しければ、エラーもその言語で表示できるようにする
+    if (e instanceof TestglassError)
+      throw new TestglassError(e.detail, path, isLang(config.lang) ? config.lang : undefined);
+    throw e;
   }
   return { config, path };
 }
@@ -69,5 +73,5 @@ export async function loadConfig(dir: string, explicit?: string): Promise<{ conf
 /** 言語の指定を確かめる（未指定は許す） */
 export function validateLang(value: unknown, name: string): Lang | undefined {
   if (value === undefined || isLang(value)) return value;
-  throw new Error(`${name} には ${LANGS.join(" / ")} のいずれかを指定してください（指定値: ${JSON.stringify(value)}）`);
+  throw new TestglassError({ code: "invalid-lang", option: name, value, langs: LANGS });
 }

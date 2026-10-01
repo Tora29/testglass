@@ -1,7 +1,8 @@
 /**
- * レポートの表示の言語。文言はすべてここの辞書から取り、spec.json には持たせない。
+ * レポート・CLI の表示の言語。文言はすべてここの辞書から取り、spec.json には持たせない。
  * 言語を増やすときは、Messages を満たす辞書を1つ足して MESSAGES に登録する。
  */
+import type { ErrorDetail } from "../core/errors.js";
 import type { Verdict } from "../output/report.js";
 import type { RuleId } from "../rules/catalog.js";
 import type { Modifier, Warning } from "../schema/types.js";
@@ -96,6 +97,25 @@ export interface Messages {
     noResults: string;
     clearFilters: string;
   };
+  /** CLI の表示 */
+  cli: {
+    help: string;
+    /** 使い方の誤りのあとに添える案内 */
+    seeHelp: string;
+    collected: (summary: {
+      files: number;
+      tests: number;
+      path: string;
+      errors: number;
+      warns: number;
+      testsWithWarnings: number;
+    }) => string;
+    /** どの入力アダプタにも該当しなかったファイル */
+    unmatched: (paths: readonly string[]) => string;
+    rendered: (format: string, path: string) => string;
+  };
+  /** エラーの文言（src/core/errors.ts） */
+  errors: (detail: ErrorDetail) => string;
 }
 
 const MESSAGES: Record<Lang, Messages> = { ja, en };

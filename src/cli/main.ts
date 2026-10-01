@@ -4,7 +4,8 @@ import { parseArgs } from "node:util";
 import type { OutputAdapter } from "../adapters/types.js";
 import { builtinInputAdapters, collect } from "../core/collect.js";
 import { loadConfig, type TestglassConfig, validateLang } from "../core/config.js";
-import type { Lang } from "../i18n/index.js";
+import { errorMessage, TestglassError } from "../core/errors.js";
+import { DEFAULT_LANG, getMessages, type Lang } from "../i18n/index.js";
 import { builtinOutputAdapters } from "../output/index.js";
 import { specJsonSchema } from "../schema/json-schema.js";
 import { SCHEMA_VERSION, type SpecJson } from "../schema/types.js";
@@ -17,39 +18,31 @@ export interface Io {
 
 const DEFAULT_OUT = "testglass/spec.json";
 
-const HELP = `testglass — テストコードからレビュー用のテスト仕様書を作る
-
-使い方:
-  testglass [options]                   テストを読んで spec.json と成果物（HTML）をまとめて生成
-  testglass collect [options]           テストを読んで spec.json を上書き
-  testglass render <spec.json> [opts]   spec.json から成果物を生成
-  testglass schema [--out <file>]       spec.json の JSON Schema を出力
-
-オプション:
-  --root <dir>        解析するルートディレクトリ（既定: カレントディレクトリ）
-  --out <file>        spec.json の出力先（既定: ${DEFAULT_OUT}）
-  --format <names>    出力形式（html / md / csv をカンマ区切り。既定: html）
-  --out-dir <dir>     成果物の出力先（既定: spec.json と同じディレクトリ）
-  --lang <lang>       成果物の言語（ja / en。既定: ja）
-  --config <file>     設定ファイル（既定: ルートの testglass.config.{mjs,js,json}）
-  --fail-on <level>   error / warn の警告が1件でもあれば終了コード 1 を返す
-  -h, --help          このヘルプを表示
-  -v, --version       バージョンを表示
-`;
-
-class UsageError extends Error {}
+/** 使い方の誤り（ヘルプへの案内を添える） */
+class UsageError extends TestglassError {}
 
 export async function main(argv: string[], io: Io = defaultIo()): Promise<number> {
+  // メッセージの言語。--lang、設定の lang が分かった時点で切り替える（それまでは既定の日本語）
+  const ctx: Context = { lang: DEFAULT_LANG };
   try {
-    return await run(argv, io);
+    return await run(argv, io, ctx);
   } catch (e) {
-    io.stderr(`testglass: ${(e as Error).message}\n`);
-    if (e instanceof UsageError) io.stderr(`\`testglass --help\` で使い方を確認できます。\n`);
+    // 設定ファイルの誤りは、--lang が無ければ、そのファイルに書かれていた lang で表示する
+    const lang = ctx.langOption ?? (e instanceof TestglassError ? e.lang : undefined) ?? ctx.lang;
+    io.stderr(`testglass: ${errorMessage(e, lang)}\n`);
+    if (e instanceof UsageError) io.stderr(`${getMessages(lang).cli.seeHelp}\n`);
     return 2;
   }
 }
 
-async function run(argv: string[], io: Io): Promise<number> {
+interface Context {
+  /** 表示に使う言語 */
+  lang: Lang;
+  /** --lang で指定した言語 */
+  langOption?: Lang;
+}
+
+async function run(argv: string[], io: Io, ctx: Context): Promise<number> {
   const { values, positionals } = parseArgs({
     args: argv,
     allowPositionals: true,
@@ -67,8 +60,16 @@ async function run(argv: string[], io: Io): Promise<number> {
     },
   });
 
+  let lang: Lang | undefined;
+  try {
+    lang = validateLang(values.lang, "--lang");
+  } catch (e) {
+    throw e instanceof TestglassError ? new UsageError(e.detail) : e;
+  }
+  if (lang) ctx.lang = ctx.langOption = lang;
+
   if (values.help) {
-    io.stdout(HELP);
+    io.stdout(getMessages(ctx.lang).cli.help);
     return 0;
   }
   if (values.version) {
@@ -79,13 +80,7 @@ async function run(argv: string[], io: Io): Promise<number> {
   const [command = "all", ...rest] = positionals;
   const failOn = values["fail-on"];
   if (failOn !== undefined && failOn !== "error" && failOn !== "warn") {
-    throw new UsageError(`--fail-on には error か warn を指定してください（指定値: ${failOn}）`);
-  }
-  let lang: Lang | undefined;
-  try {
-    lang = validateLang(values.lang, "--lang");
-  } catch (e) {
-    throw new UsageError((e as Error).message);
+    throw new UsageError({ code: "invalid-fail-on", value: failOn });
   }
   const str = (k: "root" | "out" | "format" | "out-dir" | "config") => values[k];
 
@@ -99,11 +94,12 @@ async function run(argv: string[], io: Io): Promise<number> {
     }
     case "collect":
     case "all": {
-      if (rest.length) throw new UsageError(`余分な引数があります: ${rest.join(" ")}`);
+      if (rest.length) throw new UsageError({ code: "extra-args", args: rest });
       const root = resolve(io.cwd, str("root") ?? ".");
       const { config } = await loadConfig(root, str("config") && resolve(io.cwd, str("config")!));
+      ctx.lang = lang ?? config.lang ?? DEFAULT_LANG;
       const specPath = resolve(io.cwd, str("out") ?? (config.out ? join(root, config.out) : DEFAULT_OUT));
-      const spec = await runCollect(root, specPath, config, io);
+      const spec = await runCollect(root, specPath, config, io, ctx.lang);
       if (command === "all") {
         const outDir = resolve(
           io.cwd,
@@ -115,21 +111,28 @@ async function run(argv: string[], io: Io): Promise<number> {
     }
     case "render": {
       const [specArg, ...extra] = rest;
-      if (!specArg) throw new UsageError("render には spec.json のパスを指定してください");
-      if (extra.length) throw new UsageError(`余分な引数があります: ${extra.join(" ")}`);
+      if (!specArg) throw new UsageError({ code: "missing-spec-path" });
+      if (extra.length) throw new UsageError({ code: "extra-args", args: extra });
       const specPath = resolve(io.cwd, specArg);
       const { config } = await loadConfig(io.cwd, str("config") && resolve(io.cwd, str("config")!));
+      ctx.lang = lang ?? config.lang ?? DEFAULT_LANG;
       const spec = await readSpec(specPath);
       const outDir = resolve(io.cwd, str("out-dir") ?? dirname(specPath));
       await runRender(spec, outDir, formatsOf(str("format"), config), lang ?? config.lang, config, io);
       return exitCode(spec, failOn);
     }
     default:
-      throw new UsageError(`未知のコマンドです: ${command}`);
+      throw new UsageError({ code: "unknown-command", command });
   }
 }
 
-async function runCollect(root: string, specPath: string, config: TestglassConfig, io: Io): Promise<SpecJson> {
+async function runCollect(
+  root: string,
+  specPath: string,
+  config: TestglassConfig,
+  io: Io,
+  lang: Lang,
+): Promise<SpecJson> {
   const { spec, unmatched } = await collect({
     root,
     include: config.include,
@@ -143,17 +146,18 @@ async function runCollect(root: string, specPath: string, config: TestglassConfi
   const tests = spec.files.flatMap((f) => f.tests);
   const warnings = tests.flatMap((t) => t.warnings);
   const errors = warnings.filter((w) => w.severity === "error").length;
+  const { cli } = getMessages(lang);
   io.stderr(
-    `✔ ${spec.files.length} ファイル / ${tests.length} テストを解析しました → ${rel(io, specPath)}\n` +
-      `  警告: error ${errors} 件 / warn ${warnings.length - errors} 件（警告のあるテスト ${tests.filter((t) => t.warnings.length).length} 件）\n`,
+    `${cli.collected({
+      files: spec.files.length,
+      tests: tests.length,
+      path: rel(io, specPath),
+      errors,
+      warns: warnings.length - errors,
+      testsWithWarnings: tests.filter((t) => t.warnings.length).length,
+    })}\n`,
   );
-  if (unmatched.length) {
-    io.stderr(
-      `  どの入力アダプタにも該当しなかったファイル（${unmatched.length} 件）:\n` +
-        unmatched.map((p) => `    - ${p}\n`).join("") +
-        `  自動判定が外れている場合は、設定ファイルの frameworks で指定してください。\n`,
-    );
-  }
+  if (unmatched.length) io.stderr(`${cli.unmatched(unmatched)}\n`);
   return spec;
 }
 
@@ -169,14 +173,14 @@ async function runRender(
   for (const format of formats) {
     const adapter = adapters.find((a) => a.name === format);
     if (!adapter) {
-      throw new UsageError(`未知の出力形式です: ${format}（使える形式: ${adapters.map((a) => a.name).join(", ")}）`);
+      throw new UsageError({ code: "unknown-format", format, formats: adapters.map((a) => a.name) });
     }
     // 言語は、すべての出力アダプタに共通のオプションとして渡す（--lang ＞ 設定の lang）
     const options = config.outputOptions?.[format];
     for (const file of adapter.render(spec, lang ? { ...(options as object | undefined), lang } : options)) {
       const path = resolve(outDir, file.path);
       await writeText(path, file.content);
-      io.stderr(`✔ ${format} を出力しました → ${rel(io, path)}\n`);
+      io.stderr(`${getMessages(lang ?? DEFAULT_LANG).cli.rendered(format, rel(io, path))}\n`);
     }
   }
 }
@@ -191,12 +195,10 @@ async function readSpec(path: string): Promise<SpecJson> {
   try {
     spec = JSON.parse(await readFile(path, "utf8")) as SpecJson;
   } catch (e) {
-    throw new Error(`spec.json を読めません: ${path}（${(e as Error).message}）`);
+    throw new TestglassError({ code: "unreadable-spec", path, reason: (e as Error).message });
   }
   if (spec?.schemaVersion !== SCHEMA_VERSION) {
-    throw new Error(
-      `対応していない schemaVersion です: ${String(spec?.schemaVersion)}（このバージョンは ${SCHEMA_VERSION} に対応）`,
-    );
+    throw new TestglassError({ code: "unsupported-schema", version: spec?.schemaVersion, supported: SCHEMA_VERSION });
   }
   return spec;
 }

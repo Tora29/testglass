@@ -83,6 +83,18 @@ describe("testglass（collect + render）", () => {
     expect(readFileSync(join(cwd, "c/spec.csv"), "utf8")).toContain("項番,ファイル,");
   });
 
+  it("--lang en、または設定の lang で、CLI のメッセージも英語にする", async () => {
+    expect(await main(["--root", "project", "--lang", "en"], io)).toBe(0);
+    expect(err.join("")).toContain("✔ Analyzed 4 files / 25 tests → testglass/spec.json");
+    expect(err.join("")).toContain("Warnings: error 4 / warn 23 (19 tests with warnings)");
+    expect(err.join("")).toContain("✔ Wrote html → testglass/spec.html");
+
+    err.length = 0;
+    writeFileSync(join(cwd, "project/testglass.config.json"), JSON.stringify({ lang: "en" }));
+    expect(await main(["--root", "project", "--out", "b/spec.json"], io)).toBe(0);
+    expect(err.join("")).toContain("✔ Analyzed 4 files");
+  });
+
   it("JS の設定ファイルで出力アダプタを追加できる", async () => {
     writeFileSync(
       join(cwd, "project/testglass.config.mjs"),
@@ -115,6 +127,16 @@ describe("testglass render / schema", () => {
     expect(readFileSync(join(cwd, "testglass/spec.csv"), "utf8")).toContain("正しいパスワードで成功する");
   });
 
+  it("--help は既定で日本語、--lang en で英語のヘルプを出す", async () => {
+    expect(await main(["--help"], io)).toBe(0);
+    expect(out.join("")).toContain("使い方:");
+    expect(out.join("")).toContain("English: testglass --help --lang en");
+    out.length = 0;
+    expect(await main(["--help", "--lang", "en"], io)).toBe(0);
+    expect(out.join("")).toContain("Usage:");
+    expect(out.join("")).not.toMatch(/[ぁ-んァ-ヶ]/);
+  });
+
   it("schema は JSON Schema を出力する", async () => {
     expect(await main(["schema"], io)).toBe(0);
     expect(JSON.parse(out.join(""))).toEqual(JSON.parse(JSON.stringify(specJsonSchema)));
@@ -141,6 +163,20 @@ describe("エラー", () => {
     writeFileSync(join(cwd, "project/testglass.config.json"), JSON.stringify({ lang: "EN" }));
     expect(await main(["--root", "project"], io)).toBe(2);
     expect(err.join("")).toContain('lang には ja / en のいずれかを指定してください（指定値: "EN"）');
+  });
+
+  it("--lang en でエラーと使い方の案内を英語にする", async () => {
+    expect(await main(["publish", "--lang", "en"], io)).toBe(2);
+    expect(err.join("")).toBe("testglass: Unknown command: publish\nRun `testglass --help --lang en` for usage.\n");
+  });
+
+  it("設定ファイルの誤りは、--lang が無ければ、そのファイルの lang で表示する", async () => {
+    writeFileSync(join(cwd, "project/testglass.config.json"), JSON.stringify({ lang: "en", rules: { typo: "off" } }));
+    expect(await main(["--root", "project"], io)).toBe(2);
+    expect(err.join("")).toContain('testglass.config.json: Unknown rule: "typo"');
+    err.length = 0;
+    expect(await main(["--root", "project", "--lang", "ja"], io)).toBe(2);
+    expect(err.join("")).toContain('testglass.config.json: 未知のルールです: "typo"');
   });
 
   it("schemaVersion が違う spec.json は読まない", async () => {
