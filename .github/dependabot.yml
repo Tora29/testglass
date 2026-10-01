@@ -14,6 +14,14 @@ updates:
       # minor・patch は 1 つの PR にまとめる。major は変更点を確かめたいので個別の PR にする
       npm-minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # TypeScript 7（Go 版）には、テストの解析に使っているコンパイラ API（ts.isCallExpression など）が無い。
+      # 上げるには解析の作り直しが必要なので、メジャー更新は自動で提案させない
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      # 型定義は package.json の engines の下限（Node 22）にそろえる。下限を上げたら合わせて上げる
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
     directory: /
