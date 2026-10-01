@@ -25,7 +25,7 @@
     "node": ">=22.12"
   },
   "bin": {
-    "testglass": "./dist/cli.js"
+    "testglass": "dist/cli.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
