@@ -2,9 +2,10 @@ version: 2
 updates:
   - package-ecosystem: npm
     directory: /
+    # 更新の PR を個人で見られる量に抑えるため、月 1 回（月初）にする。
+    # 脆弱性の修正は Dependabot security updates が頻度に関係なく届く
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
       timezone: Asia/Tokyo
     # 件名を .claude/rules/git-workflow.md の形式にする（chore(deps): …）
     commit-message:
@@ -25,9 +26,9 @@ updates:
 
   - package-ecosystem: github-actions
     directory: /
+    # npm と同じ理由で月 1 回にする
     schedule:
-      interval: weekly
-      day: monday
+      interval: monthly
       timezone: Asia/Tokyo
     commit-message:
       prefix: ci
