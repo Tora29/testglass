@@ -74,6 +74,9 @@ npx testglass --format html,md,csv
 | `--config <file>` | 設定ファイル。省略すると `testglass.config.{mjs,js,json}` を、`testglass`・`collect` では `--root` から、`render` ではカレントディレクトリから探す | `testglass`・`collect`・`render` |
 | `--fail-on <level>` | `error` / `warn` の警告が1件でもあれば終了コード 1 を返す（CI 用）。`warn` を指定すると、`error` があるときも 1 を返す | `testglass`・`collect`・`render` |
 
+> [!WARNING]
+> `testglass.config.mjs` / `testglass.config.js` は、Node の `import()` でそのまま実行されます（`testglass`・`collect` では `--root` の、`render` ではカレントディレクトリの設定ファイル）。信頼できないディレクトリ（レビュー前の PR をチェックアウトしたものなど）では実行しないでください。そうしたディレクトリを解析するときは、`--config` で信頼できる設定ファイルを指定すると、ディレクトリの中の設定ファイルは読み込まれません。`testglass.config.json` は実行されません。
+
 言語は、OS や環境変数（`LANG` など）のロケールからは自動で決めません。CI のランナーは英語のロケールのことが多く、手元と CI で成果物の言語が変わってしまうためです。言語を変えるときは、`--lang` か設定ファイルの `lang` で指定します。
 
 ### HTML の構成
@@ -154,7 +157,7 @@ npx testglass --format html,md,csv
 
 ## 設定
 
-ルートに `testglass.config.json`（または `.mjs` / `.js`）を置きます。
+ルートに `testglass.config.json`（または `.mjs` / `.js`）を置きます。`.mjs` / `.js` はそのまま実行されるので、信頼できないディレクトリでは実行しないでください（[オプション](#オプション)の注意を参照）。
 
 ```json
 {
@@ -452,6 +455,9 @@ An option is ignored by commands that are not listed in its "Commands" column.
 | `--config <file>` | Config file. If omitted, `testglass.config.{mjs,js,json}` is looked up in `--root` for `testglass` and `collect`, and in the current directory for `render` | `testglass`, `collect`, `render` |
 | `--fail-on <level>` | Exits with code 1 if there is at least one `error` / `warn` warning (for CI). With `warn`, it also exits with 1 when there are `error` warnings | `testglass`, `collect`, `render` |
 
+> [!WARNING]
+> `testglass.config.mjs` / `testglass.config.js` is executed as-is with Node's `import()` (the one in `--root` for `testglass` and `collect`, and the one in the current directory for `render`). Do not run testglass in a directory you do not trust (such as a checkout of an unreviewed pull request). To analyze such a directory, pass a trusted config file with `--config`; the config files in the directory are then not loaded. `testglass.config.json` is never executed.
+
 ### HTML report layout
 
 The test specification is a ruled table drawn with thin, light lines in a calm color scheme. Emphasis comes from text weight, and color is used only for verdicts (Needs fix, Needs review) and for the selected state.
@@ -530,7 +536,7 @@ Steps are built from the syntax tree by rules, without an LLM. The same code alw
 
 ## Configuration
 
-Put `testglass.config.json` (or `.mjs` / `.js`) in the root.
+Put `testglass.config.json` (or `.mjs` / `.js`) in the root. `.mjs` / `.js` files are executed as-is, so do not run testglass in a directory you do not trust (see the note under [Options](#options)).
 
 ```json
 {
