@@ -9,6 +9,7 @@ import { DEFAULT_LANG, getMessages, type Lang } from "../i18n/index.js";
 import { builtinOutputAdapters } from "../output/index.js";
 import { specJsonSchema } from "../schema/json-schema.js";
 import { SCHEMA_VERSION, type SpecJson } from "../schema/types.js";
+import { findSpecIssue } from "../schema/validate.js";
 
 export interface Io {
   cwd: string;
@@ -200,6 +201,10 @@ async function readSpec(path: string): Promise<SpecJson> {
   if (spec?.schemaVersion !== SCHEMA_VERSION) {
     throw new TestglassError({ code: "unsupported-schema", version: spec?.schemaVersion, supported: SCHEMA_VERSION });
   }
+  // 外部から渡された spec.json でも、出力アダプタが想定しない値（文字列でないテスト名など）で落ちたり
+  // 意図しない表示になったりしないよう、JSON Schema のとおりの形かを確かめてから使う
+  const issue = findSpecIssue(spec);
+  if (issue) throw new TestglassError({ code: "invalid-spec", path, issue });
   return spec;
 }
 

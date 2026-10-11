@@ -184,4 +184,22 @@ describe("エラー", () => {
     expect(await main(["render", "old.json"], io)).toBe(2);
     expect(err.join("")).toContain("対応していない schemaVersion です: 99");
   });
+
+  it("JSON Schema のとおりでない spec.json は読まない", async () => {
+    await main(["collect", "--root", "project", "--out", "a/spec.json"], io);
+    const spec = readSpec("a/spec.json");
+    (spec.files[0]!.tests[0] as unknown as { title: unknown }).title = { toString: null };
+    writeFileSync(join(cwd, "bad.json"), JSON.stringify(spec));
+    err.length = 0;
+    expect(await main(["render", "bad.json", "--format", "html,md,csv"], io)).toBe(2);
+    expect(err.join("")).toContain("spec.json の形式が正しくありません:");
+    expect(err.join("")).toContain("/files/0/tests/0/title は文字列にしてください");
+    expect(existsSync(join(cwd, "spec.html"))).toBe(false);
+
+    err.length = 0;
+    writeFileSync(join(cwd, "bad.json"), JSON.stringify({ ...readSpec("a/spec.json"), "\u001b[31m": 1 }));
+    expect(await main(["render", "bad.json", "--lang", "en"], io)).toBe(2);
+    expect(err.join("")).toContain('(the root has an unknown property "\\u001b[31m")');
+    expect(err.join("")).not.toContain("\u001b");
+  });
 });

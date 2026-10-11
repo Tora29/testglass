@@ -1,4 +1,5 @@
 import { DEFAULT_LANG, getMessages, type Lang } from "../i18n/index.js";
+import type { SpecIssue } from "../schema/validate.js";
 
 /**
  * testglass が投げるエラーの種類と値。
@@ -18,7 +19,8 @@ export type ErrorDetail =
   | { code: "unknown-command"; command: string }
   | { code: "unknown-format"; format: string; formats: readonly string[] }
   | { code: "unreadable-spec"; path: string; reason: string }
-  | { code: "unsupported-schema"; version: unknown; supported: number };
+  | { code: "unsupported-schema"; version: unknown; supported: number }
+  | { code: "invalid-spec"; path: string; issue: SpecIssue };
 
 /** testglass のエラー。message は既定の言語（日本語）の文言 */
 export class TestglassError extends Error {
