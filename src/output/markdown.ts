@@ -38,9 +38,12 @@ export const markdownAdapter: OutputAdapter<MarkdownOptions> = {
 
     lines.push(`# ${text(title)}`, "");
     lines.push(
-      [formatGeneratedAt(spec.generatedAt), `${spec.files.length} files`, `${all.length} tests`, t.staticAnalysis].join(
-        " · ",
-      ),
+      [
+        text(formatGeneratedAt(spec.generatedAt)),
+        `${spec.files.length} files`,
+        `${all.length} tests`,
+        t.staticAnalysis,
+      ].join(" · "),
       "",
     );
     lines.push(`${verdicts.error} ${counts.error} · ${verdicts.warn} ${counts.warn} · ${verdicts.ok} ${counts.ok}`, "");
@@ -54,7 +57,7 @@ export const markdownAdapter: OutputAdapter<MarkdownOptions> = {
 
     spec.files.forEach((file, fi) => {
       const fileCases = cases[fi] ?? [];
-      const meta = [file.framework, `${fileCases.length} tests`];
+      const meta = [text(file.framework), `${fileCases.length} tests`];
       const nErr = fileCases.filter((c) => c.verdict === "error").length;
       const nWarn = fileCases.filter((c) => c.verdict === "warn").length;
       if (nErr) meta.push(`${verdicts.error} ${nErr}`);
@@ -80,7 +83,7 @@ export const markdownAdapter: OutputAdapter<MarkdownOptions> = {
 
 function caseRow(c: ReportCase, messages: Messages, lang: Lang): string {
   const t = c.test;
-  const mods = t.modifiers.map((m) => messages.markdown.modifier(messages.modifiers[m]?.label ?? m)).join("");
+  const mods = t.modifiers.map((m) => messages.markdown.modifier(text(messages.modifiers[m]?.label ?? m))).join("");
   const titleCell = [mods, text(t.title)].filter(Boolean).join(" ");
   const steps = t.steps.length ? stepLines(t.steps, { format: mdStep, lang }).join("<br>") : "—";
   const asserts = t.assertions.length
@@ -132,7 +135,9 @@ function code(s: string): string {
   return `${fence}${pad}${body}${pad}${fence}`;
 }
 
-/** 表のセルは 1 行にしか書けないので、改行を空白にする */
+/** 表のセルは 1 行にしか書けないので、改行を含む空白の並びを空白 1 つにする */
 function oneLine(s: string): string {
-  return s.replace(/\s*\r?\n\s*/g, " ");
+  // /\s*\r?\n\s*/g と同じ置き換え。そう書くと、改行の無い長い空白で入力長の2乗の時間がかかるため、
+  // 空白の並びを 1 回ずつ読み、改行を含むものだけを置き換える
+  return s.replace(/\s+/g, (run) => (run.includes("\n") ? " " : run));
 }
