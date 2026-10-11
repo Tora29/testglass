@@ -31,7 +31,10 @@ jobs:
           # Trusted Publishing には npm 11.5.1 以上が要る。Node 24 に同梱の npm で足りる
           node-version: 24
           registry-url: https://registry.npmjs.org
-          cache: npm
+          # 公開するジョブでは npm のキャッシュを使わない（ほかのワークフローが保存したキャッシュを、
+          # 公開する成果物の作成に持ち込まないため）。package.json に packageManager を書いたときの
+          # 自動のキャッシュも止めておく
+          package-manager-cache: false
       # リリースのタグ（v0.1.0）と package.json の version が違えば公開しない
       - name: Check tag matches package.json version
         env:
@@ -42,6 +45,8 @@ jobs:
             echo "::error::タグ $TAG と package.json の $version が一致しません"
             exit 1
           fi
-      - run: npm ci
+      # 依存のインストールスクリプトを実行しない（id-token を持つジョブで、依存のコードを動かさないため）。
+      # testglass のビルド・テストにインストールスクリプトは要らない（fsevents の install は macOS でのみ使う）
+      - run: npm ci --ignore-scripts
       # prepublishOnly で lint・型チェック・テスト・ビルドを実行してから公開する
       - run: npm publish --provenance --access public

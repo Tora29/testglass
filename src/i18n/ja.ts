@@ -1,3 +1,4 @@
+import type { SpecIssue } from "../schema/validate.js";
 import type { Messages } from "./index.js";
 
 const DYNAMIC_MESSAGES: Readonly<Record<string, string>> = {
@@ -6,6 +7,34 @@ const DYNAMIC_MESSAGES: Readonly<Record<string, string>> = {
   title: "テスト名が式で組み立てられている。実際の名前は実行時に決まる",
   body: "本体に関数参照が渡されており、内容を解析できない",
 };
+
+const TYPE_NAMES: Readonly<Record<string, string>> = {
+  object: "オブジェクト",
+  array: "配列",
+  string: "文字列",
+  integer: "整数",
+  number: "数値",
+  boolean: "真偽値",
+};
+
+/** spec.json の誤りの説明（キーは spec.json から来るので JSON.stringify で囲み、制御文字を出さない） */
+function specIssue(issue: SpecIssue): string {
+  const at = issue.pointer || "ルート";
+  switch (issue.kind) {
+    case "type":
+      return `${at} は${TYPE_NAMES[issue.expected] ?? issue.expected}にしてください`;
+    case "required":
+      return `${at} に ${JSON.stringify(issue.property)} がありません`;
+    case "additional":
+      return `${at} に未知の項目 ${JSON.stringify(issue.property)} があります`;
+    case "enum":
+      return `${at} は ${issue.allowed.map((v) => JSON.stringify(v)).join(" / ")} のいずれかにしてください`;
+    case "minimum":
+      return `${at} は ${issue.minimum} 以上にしてください`;
+    case "unique":
+      return `${at} に同じ値が重複しています`;
+  }
+}
 
 /** duplicate-body で名前を挙げるテストの上限（残りは件数だけ示す） */
 const MAX_SHOWN_TESTS = 3;
@@ -268,6 +297,8 @@ English: testglass --help --lang en
         return `spec.json を読めません: ${e.path}（${e.reason}）`;
       case "unsupported-schema":
         return `対応していない schemaVersion です: ${String(e.version)}（このバージョンは ${e.supported} に対応）`;
+      case "invalid-spec":
+        return `spec.json の形式が正しくありません: ${e.path}（${specIssue(e.issue)}）`;
     }
   },
 };

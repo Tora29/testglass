@@ -2,8 +2,20 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { buildSpec } from "../src/core/collect.js";
 import { markdownAdapter } from "../src/output/markdown.js";
+import type { SpecJson, TestCase } from "../src/schema/types.js";
 
 const now = new Date("2026-09-29T01:00:00Z");
+const emptyTest: TestCase = {
+  id: "x",
+  suites: [],
+  title: "t",
+  location: { line: 1, column: 1 },
+  modifiers: [],
+  steps: [],
+  assertions: [],
+  warnings: [],
+  source: "",
+};
 const render = (files: { path: string; source: string }[], options?: Parameters<typeof markdownAdapter.render>[1]) =>
   markdownAdapter.render(buildSpec(files, { now }).spec, options)[0]!;
 
@@ -74,6 +86,68 @@ describe("markdownAdapter", () => {
     expect(md).toContain("| Verdict | Issue | Count |");
     expect(md).toContain("| No. | Test | Steps | Expected | Verdict |");
     expect(md).toContain("Needs fix<br>No expect");
+  });
+
+  describe("外部の spec.json（render で読むもの）の値も、Markdown・HTML として解釈されないように書く", () => {
+    const testCase = (over: Partial<TestCase> = {}): TestCase => ({ ...emptyTest, ...over });
+    const spec = (over: Partial<SpecJson> = {}, file: Partial<SpecJson["files"][number]> = {}): SpecJson => ({
+      schemaVersion: 1,
+      generatedAt: "2026-09-29T10:00:00+09:00",
+      files: [{ path: "a.test.ts", framework: "vitest", tests: [testCase()], ...file }],
+      ...over,
+    });
+    const md = (s: SpecJson) => markdownAdapter.render(s)[0]!.content;
+
+    it("フレームワーク名", () => {
+      const out = md(spec({}, { framework: "<img src=x onerror=alert(1)> | [x](javascript:alert(1))" }));
+      expect(out).toContain("&lt;img src=x onerror=alert(1)&gt; \\| \\[x\\](javascript:alert(1)) · 1 tests");
+      expect(out).not.toContain("<img");
+    });
+
+    it("日時として読めない generatedAt", () => {
+      const out = md(spec({ generatedAt: "<script>alert(1)</script>\n# 見出し" }));
+      expect(out).toContain("&lt;script&gt;alert(1)&lt;/script&gt; \\# 見出し · 1 files");
+      expect(out).not.toContain("<script>");
+      expect(out).not.toMatch(/^# 見出し/m);
+    });
+
+    it("未知の修飾子", () => {
+      const modifiers = ["<b>x</b>|y"] as unknown as TestCase["modifiers"];
+      const out = md(spec({}, { tests: [testCase({ modifiers })] }));
+      const row = out.split("\n").find((l) => l.startsWith("| 1-1 "))!;
+      expect(row).toContain("［&lt;b&gt;x&lt;/b&gt;\\|y］ t");
+      expect(row.match(/(?<!\\)\|/g)).toHaveLength(6);
+    });
+  });
+
+  it("改行を含む空白の並びだけを空白 1 つにする（\\r\\n・タブ・NBSP なども空白として扱う）", () => {
+    const titleCell = (title: string) =>
+      markdownAdapter
+        .render({
+          schemaVersion: 1,
+          generatedAt: "2026-09-29T10:00:00+09:00",
+          files: [{ path: "a.test.ts", framework: "vitest", tests: [{ ...emptyTest, title }] }],
+        })[0]!
+        .content.split("\n")
+        .find((l) => l.startsWith("| 1-1 "))!
+        .split(" | ")[1];
+    expect(titleCell("a \t\r\n\f\u00a0 b")).toBe("a b");
+    expect(titleCell("a\r\n\r\nb\nc")).toBe("a b c");
+    expect(titleCell("a \t\u00a0b")).toBe("a \t\u00a0b");
+    expect(titleCell("a\rb\u2028c")).toBe("a\rb\u2028c");
+  });
+
+  it("改行の無い長い空白でもすぐに終わる", () => {
+    // 以前の /\s*\r?\n\s*/g では、80,000 文字の空白で約3秒かかっていた
+    const title = `a${" ".repeat(80000)}b`;
+    const start = performance.now();
+    const out = markdownAdapter.render({
+      schemaVersion: 1,
+      generatedAt: "2026-09-29T10:00:00+09:00",
+      files: [{ path: "a.test.ts", framework: "vitest", tests: [{ ...emptyTest, title, source: title }] }],
+    })[0]!.content;
+    expect(performance.now() - start).toBeLessThan(200);
+    expect(out).toContain(title);
   });
 
   it("テストの無いファイルは、その旨を書く", () => {

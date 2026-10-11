@@ -630,7 +630,13 @@
 
   // #t-<id> で開いたときは、そのテストを展開してスクロールする
   function openFromHash() {
-    var id = decodeURIComponent(location.hash.slice(1));
+    var id;
+    try {
+      id = decodeURIComponent(location.hash.slice(1));
+    } catch (e) {
+      // 壊れたエンコード（#t-%E0%A4 など）は URIError になる。どのテストにも当たらないので何もしない
+      return;
+    }
     if (!id) return;
     rows.forEach(function (r) {
       if ("t-" + r.entry.test.id === id) {

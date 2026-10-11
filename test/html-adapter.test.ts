@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 import { describe, expect, it } from "vitest";
 import { buildSpec } from "../src/core/collect.js";
 import { htmlAdapter } from "../src/output/html/index.js";
@@ -65,5 +66,32 @@ describe("htmlAdapter", () => {
     const [file] = htmlAdapter.render(spec, { fileName: "review.html", title: "決済のテスト仕様書" });
     expect(file!.path).toBe("review.html");
     expect(file!.content).toContain("<title>決済のテスト仕様書</title>");
+  });
+});
+
+describe("client.js（#t-<id> で開く）", () => {
+  // DOM 全体は用意せず、openFromHash だけを取り出して、location と表の行を差し替えて動かす
+  const client = readFileSync("src/output/html/assets/client.js", "utf8");
+  const openFromHash = /\n {2}function openFromHash\(\) \{\n[\s\S]*?\n {2}\}\n/.exec(client)?.[0];
+  const open = (hash: string) => {
+    const opened: string[] = [];
+    const rows = ["t-a", "t-é"].map((id) => ({
+      entry: { test: { id: id.slice(2) } },
+      c: { tr: { hidden: true, scrollIntoView() {} }, setOpen: () => opened.push(id) },
+    }));
+    runInNewContext(`${openFromHash}\nopenFromHash();`, { location: { hash }, rows });
+    return opened;
+  };
+
+  it("id をデコードして、そのテストを開く", () => {
+    expect(openFromHash).toBeDefined();
+    expect(open("#t-a")).toEqual(["t-a"]);
+    expect(open("#t-%C3%A9")).toEqual(["t-é"]);
+    expect(open("")).toEqual([]);
+  });
+
+  it("壊れたエンコードの # でも例外を投げない", () => {
+    expect(open("#t-%E0%A4%A")).toEqual([]);
+    expect(open("#%")).toEqual([]);
   });
 });

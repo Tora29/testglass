@@ -1,3 +1,4 @@
+import type { SpecIssue } from "../schema/validate.js";
 import type { Messages } from "./index.js";
 
 const DYNAMIC_MESSAGES: Readonly<Record<string, string>> = {
@@ -9,6 +10,25 @@ const DYNAMIC_MESSAGES: Readonly<Record<string, string>> = {
 
 /** 「1 file」「2 files」のように数と単語をつなげる */
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/** spec.json の誤りの説明（キーは spec.json から来るので JSON.stringify で囲み、制御文字を出さない） */
+function specIssue(issue: SpecIssue): string {
+  const at = issue.pointer || "the root";
+  switch (issue.kind) {
+    case "type":
+      return `${at} must be ${/^[aeiou]/.test(issue.expected) ? "an" : "a"} ${issue.expected}`;
+    case "required":
+      return `${at} is missing ${JSON.stringify(issue.property)}`;
+    case "additional":
+      return `${at} has an unknown property ${JSON.stringify(issue.property)}`;
+    case "enum":
+      return `${at} must be one of ${issue.allowed.map((v) => JSON.stringify(v)).join(" / ")}`;
+    case "minimum":
+      return `${at} must be ${issue.minimum} or greater`;
+    case "unique":
+      return `${at} has duplicate values`;
+  }
+}
 
 /** duplicate-body で名前を挙げるテストの上限（残りは件数だけ示す） */
 const MAX_SHOWN_TESTS = 3;
@@ -271,6 +291,8 @@ Options:
         return `Cannot read spec.json: ${e.path} (${e.reason})`;
       case "unsupported-schema":
         return `Unsupported schemaVersion: ${String(e.version)} (this version supports ${e.supported})`;
+      case "invalid-spec":
+        return `Invalid spec.json: ${e.path} (${specIssue(e.issue)})`;
     }
   },
 };

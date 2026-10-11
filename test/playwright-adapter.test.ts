@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { playwrightAdapter } from "../src/input/playwright.js";
+import { importsAny } from "../src/input/js/adapter.js";
+import { looksLikePlaywright, PLAYWRIGHT_MODULES, playwrightAdapter } from "../src/input/playwright.js";
+import { vitestAdapter } from "../src/input/vitest.js";
 
 const parseFixture = (name: string) => {
   const path = `test/fixtures/playwright/${name}`;
@@ -18,6 +20,97 @@ describe("playwrightAdapter.match", () => {
   it("Vitest のファイルは対象にしない", () => {
     expect(playwrightAdapter.match("a.spec.ts", `import { test } from "vitest";`)).toBe(false);
     expect(playwrightAdapter.match("a.spec.ts", `test("x", () => {})`)).toBe(false);
+  });
+});
+
+describe("looksLikePlaywright", () => {
+  /** 以前の判定（線形時間の実装に置き換えた。同じものに一致するかを突き合わせる） */
+  const LEGACY_FIXTURE_PARAM = /\(\s*\{[^}]*\b(page|context|browser|browserName|request)\b[^}]*\}\s*(?:,[^)]*)?\)\s*=>/;
+  const LEGACY_IMPORT = (m: string) =>
+    new RegExp(
+      `(?:from\\s*|import\\s*\\(?\\s*|require\\s*\\(\\s*)["']${m.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}["']`,
+    );
+
+  it.each([
+    ["async ({ page }) =>", true],
+    ["({page},testInfo)=>", true],
+    ["( {\n  context,\n  request: r\n}\n) \n=>", true],
+    ["({ a: { page } }) =>", false],
+    ["({ browserName }) =>", true],
+    ["({ pages }) =>", false],
+    ["({ _page }) =>", false],
+    ["({ page }) => {} // ではなく ({ page })", true],
+    ["({ page })", false],
+    ["({ page }: Fixtures) =>", false],
+    ["function ({ page }) {}", false],
+    ["({ page }, x", false],
+  ])("%j → %s", (src, expected) => {
+    expect(looksLikePlaywright(src)).toBe(expected);
+    expect(LEGACY_FIXTURE_PARAM.test(src)).toBe(expected);
+  });
+
+  it("以前の正規表現と同じ判定になる（`({ page }, x) =>` を崩した入力で突き合わせる）", () => {
+    const pieces = ["(", ")", "{", "}", ",", " ", "\n", "\u00a0", "=>", "=", ">", ":", "page", "browserName"];
+    pieces.push("browser", "pages", "x", "_", "request", "é");
+    const template = ["(", " ", "{", " ", "page", ",", " ", "x", " ", "}", " ", ",", " ", "x", ")", " ", "=>"];
+    let seed = 1;
+    const rand = (n: number) => {
+      seed = (seed * 1103515245 + 12345) % 2 ** 31;
+      return seed % n;
+    };
+    const piece = () => pieces[rand(pieces.length)]!;
+    let matched = 0;
+    for (let k = 0; k < 20000; k++) {
+      // 字句を、ときどき落とす・別の字句に替える・後ろに字句を足す
+      const tokens: string[] = Array.from({ length: rand(2) * rand(6) }, piece);
+      for (const token of template) {
+        const r = rand(10);
+        if (r === 1) tokens.push(piece());
+        else if (r === 2) tokens.push(token, piece());
+        else if (r !== 0) tokens.push(token);
+      }
+      const src = tokens.join("");
+      const expected = LEGACY_FIXTURE_PARAM.test(src);
+      if (expected) matched++;
+      expect(looksLikePlaywright(src), JSON.stringify(src)).toBe(expected);
+    }
+    // 一致する入力・しない入力の両方を十分に試している
+    expect(matched).toBeGreaterThan(1000);
+    expect(matched).toBeLessThan(19000);
+  });
+
+  it("import の判定は以前の正規表現と同じになる", () => {
+    for (const src of [
+      'import { test } from "@playwright/test"',
+      "import{test}from'@playwright/test'",
+      'await import ( "@playwright/test")',
+      'await import("@playwright/test")',
+      'import "@playwright/test"',
+      'require ( "@playwright/test" )',
+      'require("@playwright/test")',
+      'require "@playwright/test"',
+      'import ((("@playwright/test")',
+      'from"playwright/test"',
+    ]) {
+      const legacy = PLAYWRIGHT_MODULES.some((m) => LEGACY_IMPORT(m).test(src));
+      expect(importsAny(src, PLAYWRIGHT_MODULES), src).toBe(legacy);
+    }
+  });
+
+  // 以前の正規表現では、"({page ".repeat(2000)（14KB）で約7秒、import の後の 50KB の空白で約1秒かかっていた
+  it.each([
+    ["`}` の無い ({page の繰り返し", "({page ".repeat(7200)],
+    ["`)` の無い ({page}, の繰り返し", "({page},".repeat(6300)],
+    ["`=>` の無い ({page}) の繰り返し", `${"({page},".repeat(3000)})${" ".repeat(26000)}`],
+    ["( の後の長い空白", `(${" ".repeat(50000)}`],
+    ["import の後の長い空白", `import${" ".repeat(50000)}`],
+  ])("細工した約 50KB の入力でもすぐに終わる（%s）", (_, src) => {
+    expect(src.length).toBeGreaterThanOrEqual(50000);
+    const start = performance.now();
+    looksLikePlaywright(src);
+    playwrightAdapter.match("a.spec.ts", src);
+    vitestAdapter.match("a.test.ts", src);
+    expect(performance.now() - start).toBeLessThan(200);
   });
 });
 
