@@ -48,6 +48,8 @@ export function createJsAdapter(def: JsAdapterDefinition): InputAdapter {
 export function importsAny(source: string, modules: readonly string[]): boolean {
   return modules.some((m) => {
     const q = m.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
-    return new RegExp(`(?:from\\s*|import\\s*\\(?\\s*|require\\s*\\(\\s*)["']${q}["']`).test(source);
+    // `import\s*\(?\s*` と書くと、import の後の長い空白で 2 つの `\s*` が取り合って入力長の2乗の時間がかかる。
+    // `(` があるときだけ 2 つ目の空白を読むように書き、同じものに線形時間で一致させる
+    return new RegExp(`(?:from\\s*|import\\s*(?:\\(\\s*)?|require\\s*\\(\\s*)["']${q}["']`).test(source);
   });
 }
